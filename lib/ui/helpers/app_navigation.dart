@@ -26,6 +26,7 @@ class AppNavigation extends StatelessWidget {
           label: "Hóa đơn",
         ),
         BottomNavigationBarItem(icon: Icon(Icons.people), label: "Khách hàng"),
+        BottomNavigationBarItem(icon: Icon(Icons.badge), label: "Nhân viên"),
         BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Báo cáo"),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: "Cá nhân"),
       ],

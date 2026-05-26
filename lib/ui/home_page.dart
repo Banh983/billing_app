@@ -1,3 +1,4 @@
+import 'package:billing_app/ui/employee_tab/employee_page.dart';
 import 'package:billing_app/ui/profile_tab/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'helpers/app_navigation.dart';
@@ -22,11 +23,12 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     pages = [
-      Center(child: Text("Dashboard")),
-      const Center(child: Text("Hóa đơn chưa thu")),
-      const Center(child: Text("Khách hàng")),
-      const Center(child: Text("Báo cáo")),
-      ProfilePage(user: widget.user, token: widget.token),
+      const Center(child: Text("Dashboard")), // 0
+      const Center(child: Text("Hóa đơn chưa thu")), // 1
+      const Center(child: Text("Khách hàng")), // 2
+      const EmployeePage(), // 3
+      const Center(child: Text("Báo cáo")), // 4
+      ProfilePage(user: widget.user, token: widget.token), // 5
     ];
   }
 
