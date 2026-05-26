@@ -15,6 +15,8 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static const String baseUrl = "http://192.168.97.204:8080";
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -25,22 +27,22 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
         /// ======================
-        /// EMPLOYEE (AUTO SYNC TOKEN)
+        /// EMPLOYEE (FIXED)
         /// ======================
         ChangeNotifierProxyProvider<AuthProvider, EmployeeProvider>(
-          create: (_) => EmployeeProvider(
-            EmployeeService(baseUrl: "http://192.168.97.204:8080", token: ""),
-          ),
+          create: (_) =>
+              EmployeeProvider(EmployeeService(baseUrl: baseUrl, token: "")),
 
-          update: (_, auth, previous) {
+          update: (_, auth, employeeProvider) {
             final token = auth.token ?? "";
 
-            return EmployeeProvider(
-              EmployeeService(
-                baseUrl: "http://192.168.97.204:8080",
-                token: token,
-              ),
+            // 👉 KHÔNG tạo mới provider
+            employeeProvider!.service = EmployeeService(
+              baseUrl: baseUrl,
+              token: token,
             );
+
+            return employeeProvider;
           },
         ),
       ],

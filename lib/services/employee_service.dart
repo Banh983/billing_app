@@ -14,7 +14,7 @@ class EmployeeService {
   };
 
   /// =========================
-  /// GET ALL EMPLOYEES
+  /// GET ALL EMPLOYEES (FIX RESPONSE STRUCTURE)
   /// =========================
   Future<List<Employee>> getAll() async {
     final res = await http.get(Uri.parse("$baseUrl/users"), headers: headers);
@@ -26,10 +26,9 @@ class EmployeeService {
       throw Exception("Failed to load employees");
     }
 
-    final json = jsonDecode(res.body);
+    final Map<String, dynamic> json = jsonDecode(res.body);
 
-    // 👇 FIX CHÍNH Ở ĐÂY
-    final List data = json["data"]["content"] ?? [];
+    final List<dynamic> data = json["data"]?["content"] ?? json["data"] ?? [];
 
     return data.map((e) => Employee.fromJson(e)).toList();
   }
@@ -38,16 +37,17 @@ class EmployeeService {
   /// CREATE EMPLOYEE
   /// =========================
   Future<Employee> create(Employee emp, String password) async {
-    final body = {
-      "fullName": emp.fullName,
-      "email": emp.email,
-      "password": password,
+    final Map<String, dynamic> body = {
+      "fullName": emp.fullName.trim(),
+      "email": emp.email.trim(),
+      "password": password.trim(),
       "role": emp.role,
+      "status": emp.status ?? "ACTIVE",
     };
 
-    // chỉ thêm phone nếu có
-    if (emp.phone != null && emp.phone!.isNotEmpty) {
-      body["phone"] = emp.phone!;
+    // optional phone
+    if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
+      body["phone"] = emp.phone!.trim();
     }
 
     final res = await http.post(
@@ -56,7 +56,15 @@ class EmployeeService {
       body: jsonEncode(body),
     );
 
+    print("CREATE STATUS: ${res.statusCode}");
+    print("CREATE BODY: ${res.body}");
+    print("CREATE REQUEST: ${jsonEncode(body)}");
+
     final json = jsonDecode(res.body);
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception(json["message"] ?? "Create failed");
+    }
 
     return Employee.fromJson(json["data"] ?? json);
   }
@@ -65,25 +73,40 @@ class EmployeeService {
   /// UPDATE EMPLOYEE
   /// =========================
   Future<Employee> update(int id, Employee emp) async {
+    final Map<String, dynamic> body = {
+      "fullName": emp.fullName.trim(),
+      "email": emp.email.trim(),
+      "role": emp.role,
+      "status": emp.status ?? "ACTIVE",
+    };
+
+    // ⚠️ CHỈ GỬI KHI KHÔNG NULL + KHÔNG RỖNG
+    if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
+      body["phone"] = emp.phone!.trim();
+    }
+
+    if (emp.password != null && emp.password!.trim().isNotEmpty) {
+      body["password"] = emp.password!.trim();
+    }
+
     final res = await http.put(
       Uri.parse("$baseUrl/users/$id"),
       headers: headers,
-      body: jsonEncode(emp.toJson()),
+      body: jsonEncode(body),
     );
 
     print("UPDATE STATUS: ${res.statusCode}");
     print("UPDATE BODY: ${res.body}");
-
-    if (res.statusCode != 200) {
-      throw Exception("Update failed");
-    }
+    print("UPDATE REQUEST: ${jsonEncode(body)}");
 
     final json = jsonDecode(res.body);
-    final data = json["data"] ?? json;
 
-    return Employee.fromJson(data);
+    if (res.statusCode != 200) {
+      throw Exception(json["message"] ?? "Update failed");
+    }
+
+    return Employee.fromJson(json["data"] ?? json);
   }
-
   /// =========================
   /// DELETE EMPLOYEE
   /// =========================
@@ -97,7 +120,9 @@ class EmployeeService {
     print("DELETE BODY: ${res.body}");
 
     if (res.statusCode != 200 && res.statusCode != 204) {
-      throw Exception("Delete failed");
+      final json = jsonDecode(res.body);
+      throw Exception(json["message"] ?? "Delete failed");
     }
   }
+  
 }

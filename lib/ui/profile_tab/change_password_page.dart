@@ -1,4 +1,5 @@
 import 'package:billing_app/provider/auth_provider.dart';
+import 'package:billing_app/ui/helpers/toast_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,14 +35,10 @@ class ChangePasswordPage extends StatelessWidget {
 
               child: Column(
                 children: [
-                  // OLD PASSWORD
                   TextField(
                     controller: provider.oldPassController,
-
                     obscureText: true,
-
                     textInputAction: TextInputAction.next,
-
                     decoration: const InputDecoration(
                       labelText: "Mật khẩu cũ",
                       prefixIcon: Icon(Icons.lock),
@@ -50,14 +47,10 @@ class ChangePasswordPage extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // NEW PASSWORD
                   TextField(
                     controller: provider.newPassController,
-
                     obscureText: true,
-
                     textInputAction: TextInputAction.next,
-
                     decoration: const InputDecoration(
                       labelText: "Mật khẩu mới",
                       prefixIcon: Icon(Icons.lock_outline),
@@ -66,21 +59,15 @@ class ChangePasswordPage extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // CONFIRM PASSWORD
                   TextField(
                     controller: provider.confirmPassController,
-
                     obscureText: true,
-
                     textInputAction: TextInputAction.done,
-
                     onSubmitted: (_) async {
                       await _handleChangePassword(context, provider);
                     },
-
                     decoration: const InputDecoration(
                       labelText: "Xác nhận mật khẩu",
-
                       prefixIcon: Icon(Icons.check),
                     ),
                   ),
@@ -126,25 +113,28 @@ class ChangePasswordPage extends StatelessWidget {
     );
   }
 
+  // =========================
+  // FIXED HANDLER
+  // =========================
   Future<void> _handleChangePassword(
     BuildContext context,
     AuthProvider provider,
   ) async {
     final result = await provider.changePassword();
 
-    if (!context.mounted) {
-      return;
-    }
+    if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result["message"]),
-        backgroundColor: result["success"] ? Colors.green : Colors.red,
-      ),
-    );
+    final success = result["success"] == true;
+    final message = result["message"] ?? "Có lỗi xảy ra";
 
-    if (result["success"]) {
-      Navigator.pop(context);
+    if (success) {
+      Navigator.pop(context); // quay về trước
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ToastUtils.success(context, message: message);
+      });
+    } else {
+      ToastUtils.error(context, message: message);
     }
   }
 }

@@ -193,34 +193,35 @@ class AuthProvider extends ChangeNotifier {
   void _mapError(String raw) {
     if (!raw.contains("field")) {
       generalError = raw;
-
       return;
     }
 
     final regex = RegExp(r'field:\s*([^,]+),\s*message:\s*([^}]+)');
-
     final matches = regex.allMatches(raw);
 
     for (final m in matches) {
       final field = m.group(1)?.trim();
-
       final message = m.group(2)?.trim();
 
       switch (field) {
-        case "email":
-          emailError = message;
+        case "oldPassword":
+          generalError = message;
+          break;
+
+        case "newPassword":
+          generalError = message;
           break;
 
         case "password":
-          passwordError = message;
+          generalError = message;
           break;
 
         default:
-          generalError = message;
+          // ❌ IGNORE tất cả field khác (phone, email, role,...)
+          break;
       }
     }
   }
-
   // ======================
   // DISPOSE
   // ======================

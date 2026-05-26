@@ -17,6 +17,26 @@ class Employee {
     this.status,
   });
 
+  Employee copyWith({
+    int? id,
+    String? fullName,
+    String? email,
+    String? phone,
+    String? password,
+    String? role,
+    String? status,
+  }) {
+    return Employee(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      password: password ?? this.password,
+      role: role ?? this.role,
+      status: status ?? this.status,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       "fullName": fullName,
@@ -25,7 +45,7 @@ class Employee {
       "password": password,
       "role": role,
       "status": status ?? "ACTIVE",
-    }..removeWhere((k, v) => v == null || v == "");
+    }..removeWhere((k, v) => v == null);
   }
 
   factory Employee.fromJson(Map<String, dynamic> json) {
