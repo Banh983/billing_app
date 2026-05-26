@@ -14,80 +14,165 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  final focusEmail = FocusNode();
+  final focusPassword = FocusNode();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    focusEmail.dispose();
+    focusPassword.dispose();
+    super.dispose();
+  }
+
+  InputDecoration _input(String hint, IconData icon, bool focused) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: Colors.red),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red.shade200),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Billing Login")),
+      backgroundColor: const Color(0xFFFFEBEE),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              const Icon(Icons.lock_outline, size: 80),
-              const SizedBox(height: 24),
-
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  hintText: "Email",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+              Container(
+                height: 260,
+                width: 260,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.25),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.asset(
+                    "assets/images/Viettel_login.jpg",
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 30),
 
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  hintText: "Password",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+              const Text(
+                "HỆ THỐNG\nQUẢN LÝ THU CƯỚC",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 25),
 
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: auth.loading
-                      ? null
-                      : () async {
-                          final success = await auth.login(
-                            emailController.text.trim(),
-                            passwordController.text.trim(),
-                          );
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: emailController,
+                      focusNode: focusEmail,
+                      decoration: _input(
+                        "Email",
+                        Icons.email,
+                        focusEmail.hasFocus,
+                      ).copyWith(errorText: auth.emailError),
+                    ),
 
-                          if (success) {
-                            if (!context.mounted) return;
+                    const SizedBox(height: 15),
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Login success")),
-                            );
+                    TextField(
+                      controller: passwordController,
+                      focusNode: focusPassword,
+                      obscureText: true,
+                      decoration: _input(
+                        "Mật khẩu",
+                        Icons.lock,
+                        focusPassword.hasFocus,
+                      ).copyWith(errorText: auth.passwordError),
+                    ),
 
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => HomePage(
-                                  user: auth.user,
-                                  token: auth.token ?? "",
-                                ),
+                    if (auth.generalError != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        auth.generalError!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+
+                    const SizedBox(height: 25),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: auth.loading
+                            ? null
+                            : () async {
+                                final ok = await auth.login(
+                                  emailController.text.trim(),
+                                  passwordController.text.trim(),
+                                );
+
+                                if (!context.mounted) return;
+
+                                if (ok) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => HomePage(
+                                        user: auth.user,
+                                        token: auth.token ?? "",
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: auth.loading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                "ĐĂNG NHẬP",
+                                style: TextStyle(color: Colors.white),
                               ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Login failed")),
-                            );
-                          }
-                        },
-                  child: auth.loading
-                      ? const CircularProgressIndicator()
-                      : const Text("LOGIN"),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

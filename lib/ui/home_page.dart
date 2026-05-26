@@ -1,54 +1,49 @@
+import 'package:billing_app/ui/profile_tab/profile_page.dart';
 import 'package:flutter/material.dart';
-import 'login_page.dart';
+import 'helpers/app_navigation.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final dynamic user;
   final String token;
 
   const HomePage({super.key, required this.user, required this.token});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int currentIndex = 0;
+
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+
+    pages = [
+      Center(child: Text("Dashboard")),
+      const Center(child: Text("Hóa đơn chưa thu")),
+      const Center(child: Text("Khách hàng")),
+      const Center(child: Text("Báo cáo")),
+      ProfilePage(user: widget.user, token: widget.token),
+    ];
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Home Page"),
-        automaticallyImplyLeading: false,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Welcome 👋",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
+      appBar: AppBar(title: const Text("Hệ thống thu cước")),
 
-            const SizedBox(height: 20),
+      body: pages[currentIndex],
 
-            Text("Token: $token"),
-
-            const SizedBox(height: 20),
-
-            Text("User: $user"),
-
-            const Spacer(),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                    (route) => false, // xoá toàn bộ stack
-                  );
-                },
-                child: const Text("Logout"),
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: AppNavigation(
+        currentIndex: currentIndex,
+        onTap: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
       ),
     );
   }
