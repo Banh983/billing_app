@@ -43,14 +43,17 @@ class _EmployeePageState extends State<EmployeePage> {
 
       ok = await provider.addEmployee(result, pass);
     } else {
-      ok = await provider.updateEmployee(emp.id!, result);
+      final id = emp.id!;
+
+      final updateOk = await provider.updateEmployee(id, result);
+
+      final statusOk = await provider.setStatus(id, result.status!);
+
+      ok = updateOk && statusOk;
     }
 
     if (!mounted) return;
 
-    // =========================
-    // 🔥 REPLACE SNACKBAR → TOAST
-    // =========================
     final message = provider.error ?? provider.actionMessage ?? "";
 
     if (ok) {

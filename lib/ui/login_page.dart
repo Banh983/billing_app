@@ -1,5 +1,7 @@
+import 'package:billing_app/ui/helpers/custom_input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../provider/auth_provider.dart';
 import 'home_page.dart';
 
@@ -14,31 +16,11 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  final focusEmail = FocusNode();
-  final focusPassword = FocusNode();
-
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
-    focusEmail.dispose();
-    focusPassword.dispose();
     super.dispose();
-  }
-
-  InputDecoration _input(String hint, IconData icon, bool focused) {
-    return InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icon, color: Colors.red),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.red.shade200),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-    );
   }
 
   @override
@@ -47,11 +29,14 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFEBEE),
+
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
+
           child: Column(
             children: [
+              // ================= IMAGE =================
               Container(
                 height: 260,
                 width: 260,
@@ -89,37 +74,35 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 25),
 
+              // ================= FORM =================
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                 ),
+
                 child: Column(
                   children: [
-                    TextField(
+                    // EMAIL
+                    CustomInputField(
                       controller: emailController,
-                      focusNode: focusEmail,
-                      decoration: _input(
-                        "Email",
-                        Icons.email,
-                        focusEmail.hasFocus,
-                      ).copyWith(errorText: auth.emailError),
+                      label: "Email",
+                      icon: Icons.email,
+                      isPassword: false,
                     ),
 
                     const SizedBox(height: 15),
 
-                    TextField(
+                    // PASSWORD
+                    CustomInputField(
                       controller: passwordController,
-                      focusNode: focusPassword,
-                      obscureText: true,
-                      decoration: _input(
-                        "Mật khẩu",
-                        Icons.lock,
-                        focusPassword.hasFocus,
-                      ).copyWith(errorText: auth.passwordError),
+                      label: "Mật khẩu",
+                      icon: Icons.lock,
+                      isPassword: true,
                     ),
 
+                    // ERROR GENERAL
                     if (auth.generalError != null) ...[
                       const SizedBox(height: 10),
                       Text(
@@ -130,6 +113,7 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 25),
 
+                    // BUTTON
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -140,6 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+
                         onPressed: auth.loading
                             ? null
                             : () async {
@@ -162,9 +147,15 @@ class _LoginPageState extends State<LoginPage> {
                                   );
                                 }
                               },
+
                         child: auth.loading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Text(
                                 "ĐĂNG NHẬP",

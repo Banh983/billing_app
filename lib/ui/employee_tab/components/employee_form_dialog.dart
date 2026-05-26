@@ -17,6 +17,7 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
   late TextEditingController passwordController;
 
   String role = "CONSULTANT";
+  String status = "ACTIVE";
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
     passwordController = TextEditingController();
 
     role = e?.role ?? "CONSULTANT";
+    status = e?.status ?? "ACTIVE";
   }
 
   @override
@@ -47,34 +49,51 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
 
     return AlertDialog(
       title: Text(isEdit ? "Cập nhật nhân viên" : "Thêm nhân viên"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameController,
-            decoration: InputDecoration(labelText: "Tên *"),
-          ),
-          TextField(
-            controller: emailController,
-            decoration: InputDecoration(labelText: "Email *"),
-          ),
-          TextField(
-            controller: phoneController,
-            decoration: InputDecoration(labelText: "SĐT"),
-          ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Tên *"),
+            ),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email *"),
+            ),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: "SĐT"),
+            ),
 
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-          DropdownButtonFormField<String>(
-            value: role,
-            items: const [
-              DropdownMenuItem(value: "CONSULTANT", child: Text("CONSULTANT")),
-              DropdownMenuItem(value: "MANAGER", child: Text("MANAGER")),
-            ],
-            onChanged: (v) => setState(() => role = v!),
-            decoration: const InputDecoration(labelText: "Role"),
-          ),
-        ],
+            DropdownButtonFormField<String>(
+              value: role,
+              items: const [
+                DropdownMenuItem(
+                  value: "CONSULTANT",
+                  child: Text("CONSULTANT"),
+                ),
+                DropdownMenuItem(value: "MANAGER", child: Text("MANAGER")),
+              ],
+              onChanged: (v) => setState(() => role = v!),
+              decoration: const InputDecoration(labelText: "Role"),
+            ),
+
+            const SizedBox(height: 10),
+
+            DropdownButtonFormField<String>(
+              value: status,
+              items: const [
+                DropdownMenuItem(value: "ACTIVE", child: Text("ACTIVE")),
+                DropdownMenuItem(value: "INACTIVE", child: Text("INACTIVE")),
+              ],
+              onChanged: (v) => setState(() => status = v!),
+              decoration: const InputDecoration(labelText: "Status"),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -84,8 +103,9 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
         ElevatedButton(
           onPressed: () {
             if (nameController.text.trim().isEmpty ||
-                emailController.text.trim().isEmpty)
+                emailController.text.trim().isEmpty) {
               return;
+            }
 
             Navigator.pop(
               context,
@@ -97,7 +117,7 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
                     ? null
                     : phoneController.text.trim(),
                 role: role,
-                status: "ACTIVE",
+                status: status,
               ),
             );
           },

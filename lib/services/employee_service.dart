@@ -13,9 +13,9 @@ class EmployeeService {
     "Authorization": "Bearer $token",
   };
 
-  /// =========================
-  /// GET ALL EMPLOYEES (FIX RESPONSE STRUCTURE)
-  /// =========================
+  // =========================
+  // GET ALL EMPLOYEES
+  // =========================
   Future<List<Employee>> getAll() async {
     final res = await http.get(Uri.parse("$baseUrl/users"), headers: headers);
 
@@ -33,9 +33,9 @@ class EmployeeService {
     return data.map((e) => Employee.fromJson(e)).toList();
   }
 
-  /// =========================
-  /// CREATE EMPLOYEE
-  /// =========================
+  // =========================
+  // CREATE EMPLOYEE
+  // =========================
   Future<Employee> create(Employee emp, String password) async {
     final Map<String, dynamic> body = {
       "fullName": emp.fullName.trim(),
@@ -45,7 +45,6 @@ class EmployeeService {
       "status": emp.status ?? "ACTIVE",
     };
 
-    // optional phone
     if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
       body["phone"] = emp.phone!.trim();
     }
@@ -69,18 +68,16 @@ class EmployeeService {
     return Employee.fromJson(json["data"] ?? json);
   }
 
-  /// =========================
-  /// UPDATE EMPLOYEE
-  /// =========================
+  // =========================
+  // UPDATE EMPLOYEE (KHÔNG UPDATE STATUS)
+  // =========================
   Future<Employee> update(int id, Employee emp) async {
     final Map<String, dynamic> body = {
       "fullName": emp.fullName.trim(),
       "email": emp.email.trim(),
       "role": emp.role,
-      "status": emp.status ?? "ACTIVE",
     };
 
-    // ⚠️ CHỈ GỬI KHI KHÔNG NULL + KHÔNG RỖNG
     if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
       body["phone"] = emp.phone!.trim();
     }
@@ -107,9 +104,28 @@ class EmployeeService {
 
     return Employee.fromJson(json["data"] ?? json);
   }
-  /// =========================
-  /// DELETE EMPLOYEE
-  /// =========================
+
+  // =========================
+  // SET STATUS (ACTIVE / INACTIVE)
+  // =========================
+  Future<void> setStatus(int id, String status) async {
+    final res = await http.patch(
+      Uri.parse("$baseUrl/users/$id/status?status=$status"),
+      headers: headers,
+    );
+
+    print("SET STATUS CODE: ${res.statusCode}");
+    print("SET STATUS BODY: ${res.body}");
+
+    if (res.statusCode != 200) {
+      final json = jsonDecode(res.body);
+      throw Exception(json["message"] ?? "Set status failed");
+    }
+  }
+
+  // =========================
+  // DELETE EMPLOYEE
+  // =========================
   Future<void> delete(int id) async {
     final res = await http.delete(
       Uri.parse("$baseUrl/users/$id"),
@@ -124,5 +140,4 @@ class EmployeeService {
       throw Exception(json["message"] ?? "Delete failed");
     }
   }
-  
 }

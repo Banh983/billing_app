@@ -3,7 +3,7 @@ import '../models/employee.dart';
 import '../services/employee_service.dart';
 
 class EmployeeProvider extends ChangeNotifier {
-  late EmployeeService service;
+  EmployeeService service;
 
   EmployeeProvider(this.service);
 
@@ -34,6 +34,7 @@ class EmployeeProvider extends ChangeNotifier {
 
     try {
       final result = await service.getAll();
+
       employees = result.where((e) => e.role == "CONSULTANT").toList();
     } catch (e) {
       error = e.toString();
@@ -48,6 +49,7 @@ class EmployeeProvider extends ChangeNotifier {
   // =========================
   Future<bool> addEmployee(Employee emp, String password) async {
     _setActionLoading(true);
+    error = null;
 
     try {
       final newEmp = await service.create(emp, password);
@@ -64,10 +66,11 @@ class EmployeeProvider extends ChangeNotifier {
   }
 
   // =========================
-  // UPDATE
+  // UPDATE INFO (KHÔNG STATUS)
   // =========================
   Future<bool> updateEmployee(int id, Employee emp) async {
     _setActionLoading(true);
+    error = null;
 
     try {
       final updated = await service.update(id, emp);
@@ -95,12 +98,36 @@ class EmployeeProvider extends ChangeNotifier {
   // =========================
   Future<bool> deleteEmployee(int id) async {
     _setActionLoading(true);
+    error = null;
 
     try {
       await service.delete(id);
       employees.removeWhere((e) => e.id == id);
 
       actionMessage = "Đã xoá nhân viên";
+      return true;
+    } catch (e) {
+      error = e.toString();
+      return false;
+    } finally {
+      _setActionLoading(false);
+    }
+  }
+
+  // =========================
+  // SET STATUS (ACTIVE / INACTIVE)
+  // =========================
+  Future<bool> setStatus(int id, String status) async {
+    _setActionLoading(true);
+    error = null;
+
+    try {
+      await service.setStatus(id, status);
+
+      // refresh list để UI sync DB
+      await fetchEmployees();
+
+      actionMessage = "Cập nhật trạng thái thành công";
       return true;
     } catch (e) {
       error = e.toString();
