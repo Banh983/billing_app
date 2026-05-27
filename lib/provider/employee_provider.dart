@@ -1,4 +1,6 @@
+import 'package:billing_app/models/api_result.dart';
 import 'package:flutter/material.dart';
+
 import '../models/employee.dart';
 import '../services/employee_service.dart';
 
@@ -10,26 +12,48 @@ class EmployeeProvider extends ChangeNotifier {
   List<Employee> employees = [];
 
   bool loading = false;
+
   bool actionLoading = false;
 
   String? error;
+
   String? actionMessage;
+
+  // =========================
+  // LOADING
+  // =========================
 
   void _setLoading(bool v) {
     loading = v;
+
     notifyListeners();
   }
 
   void _setActionLoading(bool v) {
     actionLoading = v;
+
     notifyListeners();
+  }
+
+  void _resetActionState() {
+    error = null;
+
+    actionMessage = null;
+  }
+
+  String _parseError(Object e) {
+    final msg = e.toString();
+
+    return msg.replaceFirst("Exception:", "").trim();
   }
 
   // =========================
   // FETCH
   // =========================
+
   Future<void> fetchEmployees() async {
     _setLoading(true);
+
     error = null;
 
     try {
@@ -37,42 +61,99 @@ class EmployeeProvider extends ChangeNotifier {
 
       employees = result.where((e) => e.role == "CONSULTANT").toList();
     } catch (e) {
-      error = e.toString();
+      error = _parseError(e);
+
       employees = [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // =========================
+  // VALIDATE PHONE
+  // =========================
+
+  ApiResult<void>? _validatePhone(String? phone) {
+    final value = phone?.trim() ?? "";
+
+    if (value.isEmpty) {
+      return null;
     }
 
-    _setLoading(false);
+    // chỉ được nhập số
+    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+      return ApiResult.error(message: "Số điện thoại chỉ được chứa chữ số");
+    }
+
+    // đúng 10 số
+    if (value.length != 10) {
+      return ApiResult.error(message: "Số điện thoại phải gồm đúng 10 số");
+    }
+
+    return null;
   }
 
   // =========================
   // ADD
   // =========================
-  Future<bool> addEmployee(Employee emp, String password) async {
+
+  Future<ApiResult<void>> addEmployee(Employee emp, String password) async {
     _setActionLoading(true);
-    error = null;
+
+    _resetActionState();
 
     try {
+      // validate phone frontend
+      final phoneError = _validatePhone(emp.phone);
+
+      if (phoneError != null) {
+        error = phoneError.message;
+
+        return phoneError;
+      }
+
+      // call api
       final newEmp = await service.create(emp, password);
+
       employees.insert(0, newEmp);
 
-      actionMessage = "Thêm nhân viên thành công";
-      return true;
+      // custom success message
+      const msg = "Cập nhật thông tin thành công";
+
+      actionMessage = msg;
+
+      return ApiResult.success(message: msg);
     } catch (e) {
-      error = e.toString();
-      return false;
+      final msg = _parseError(e);
+
+      error = msg;
+
+      return ApiResult.error(message: msg);
     } finally {
       _setActionLoading(false);
     }
   }
 
   // =========================
-  // UPDATE INFO (KHÔNG STATUS)
+  // UPDATE
   // =========================
-  Future<bool> updateEmployee(int id, Employee emp) async {
+
+  Future<ApiResult<void>> updateEmployee(int id, Employee emp) async {
     _setActionLoading(true);
-    error = null;
+
+    _resetActionState();
 
     try {
+      // validate phone frontend
+      final phoneError = _validatePhone(emp.phone);
+
+      if (phoneError != null) {
+        error = phoneError.message;
+
+        return phoneError;
+      }
+
+      // call api
       final updated = await service.update(id, emp);
 
       final index = employees.indexWhere((e) => e.id == id);
@@ -83,11 +164,18 @@ class EmployeeProvider extends ChangeNotifier {
         await fetchEmployees();
       }
 
-      actionMessage = "Cập nhật thành công";
-      return true;
+      // custom success message
+      const msg = "Cập nhật thông tin thành công";
+
+      actionMessage = msg;
+
+      return ApiResult.success(message: msg);
     } catch (e) {
-      error = e.toString();
-      return false;
+      final msg = _parseError(e);
+
+      error = msg;
+
+      return ApiResult.error(message: msg);
     } finally {
       _setActionLoading(false);
     }
@@ -96,42 +184,68 @@ class EmployeeProvider extends ChangeNotifier {
   // =========================
   // DELETE
   // =========================
-  Future<bool> deleteEmployee(int id) async {
+
+  Future<ApiResult<void>> deleteEmployee(int id) async {
     _setActionLoading(true);
-    error = null;
+
+    _resetActionState();
 
     try {
       await service.delete(id);
+
       employees.removeWhere((e) => e.id == id);
 
-      actionMessage = "Đã xoá nhân viên";
-      return true;
+      const msg = "Đã xoá nhân viên";
+
+      actionMessage = msg;
+
+      return ApiResult.success(message: msg);
     } catch (e) {
-      error = e.toString();
-      return false;
+      final msg = _parseError(e);
+
+      error = msg;
+
+      return ApiResult.error(message: msg);
     } finally {
       _setActionLoading(false);
     }
   }
 
   // =========================
-  // SET STATUS (ACTIVE / INACTIVE)
+  // SET STATUS
   // =========================
-  Future<bool> setStatus(int id, String status) async {
+
+  Future<ApiResult<void>> setStatus(int id, String status) async {
     _setActionLoading(true);
-    error = null;
+
+    _resetActionState();
 
     try {
-      await service.setStatus(id, status);
+      final res = await service.setStatus(id, status);
 
-      // refresh list để UI sync DB
+      if (!res.success) {
+        error = res.message;
+
+        return ApiResult.error(
+          message: res.message,
+          statusCode: res.statusCode,
+        );
+      }
+
       await fetchEmployees();
 
-      actionMessage = "Cập nhật trạng thái thành công";
-      return true;
+      // custom success message
+      const msg = "Cập nhật thông tin thành công";
+
+      actionMessage = msg;
+
+      return ApiResult.success(message: msg, statusCode: res.statusCode);
     } catch (e) {
-      error = e.toString();
-      return false;
+      final msg = _parseError(e);
+
+      error = msg;
+
+      return ApiResult.error(message: msg);
     } finally {
       _setActionLoading(false);
     }

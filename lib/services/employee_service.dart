@@ -1,9 +1,13 @@
 import 'dart:convert';
+
+import 'package:billing_app/models/api_result.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/employee.dart';
 
 class EmployeeService {
   final String baseUrl;
+
   final String token;
 
   EmployeeService({required this.baseUrl, required this.token});
@@ -14,40 +18,45 @@ class EmployeeService {
   };
 
   // =========================
-  // GET ALL EMPLOYEES
+  // GET ALL
   // =========================
+
   Future<List<Employee>> getAll() async {
     final res = await http.get(Uri.parse("$baseUrl/users"), headers: headers);
 
-    print("GET USERS STATUS: ${res.statusCode}");
-    print("GET USERS BODY: ${res.body}");
+    print("GET STATUS: ${res.statusCode}");
+    print("GET BODY: ${res.body}");
 
     if (res.statusCode != 200) {
-      throw Exception("Failed to load employees");
+      throw Exception("Load employees failed");
     }
 
-    final Map<String, dynamic> json = jsonDecode(res.body);
+    final json = jsonDecode(res.body);
 
-    final List<dynamic> data = json["data"]?["content"] ?? json["data"] ?? [];
+    final data = json["data"]?["content"] ?? json["data"] ?? [];
 
-    return data.map((e) => Employee.fromJson(e)).toList();
+    return data.map<Employee>((e) => Employee.fromJson(e)).toList();
   }
 
   // =========================
-  // CREATE EMPLOYEE
+  // CREATE
   // =========================
-  Future<Employee> create(Employee emp, String password) async {
-    final Map<String, dynamic> body = {
-      "fullName": emp.fullName.trim(),
-      "email": emp.email.trim(),
-      "password": password.trim(),
-      "role": emp.role,
-      "status": emp.status ?? "ACTIVE",
-    };
 
-    if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
-      body["phone"] = emp.phone!.trim();
-    }
+  Future<Employee> create(Employee emp, String password) async {
+    final body = {
+      "fullName": emp.fullName.trim(),
+
+  
+      "username": emp.username.trim(),
+
+      "password": password.trim(),
+
+      "role": emp.role,
+
+      "status": emp.status ?? "ACTIVE",
+
+      "phone": emp.phone?.trim(),
+    }..removeWhere((k, v) => v == null);
 
     final res = await http.post(
       Uri.parse("$baseUrl/users"),
@@ -57,11 +66,10 @@ class EmployeeService {
 
     print("CREATE STATUS: ${res.statusCode}");
     print("CREATE BODY: ${res.body}");
-    print("CREATE REQUEST: ${jsonEncode(body)}");
 
     final json = jsonDecode(res.body);
 
-    if (res.statusCode != 200 && res.statusCode != 201) {
+    if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception(json["message"] ?? "Create failed");
     }
 
@@ -69,22 +77,19 @@ class EmployeeService {
   }
 
   // =========================
-  // UPDATE EMPLOYEE (KHÔNG UPDATE STATUS)
+  // UPDATE INFO
   // =========================
+
   Future<Employee> update(int id, Employee emp) async {
-    final Map<String, dynamic> body = {
+    final body = {
       "fullName": emp.fullName.trim(),
-      "email": emp.email.trim(),
+
+      "username": emp.username.trim(),
+
       "role": emp.role,
-    };
 
-    if (emp.phone != null && emp.phone!.trim().isNotEmpty) {
-      body["phone"] = emp.phone!.trim();
-    }
-
-    if (emp.password != null && emp.password!.trim().isNotEmpty) {
-      body["password"] = emp.password!.trim();
-    }
+      "phone": emp.phone?.trim(),
+    }..removeWhere((k, v) => v == null);
 
     final res = await http.put(
       Uri.parse("$baseUrl/users/$id"),
@@ -98,7 +103,7 @@ class EmployeeService {
 
     final json = jsonDecode(res.body);
 
-    if (res.statusCode != 200) {
+    if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception(json["message"] ?? "Update failed");
     }
 
@@ -106,26 +111,41 @@ class EmployeeService {
   }
 
   // =========================
-  // SET STATUS (ACTIVE / INACTIVE)
+  // SET STATUS
   // =========================
-  Future<void> setStatus(int id, String status) async {
-    final res = await http.patch(
-      Uri.parse("$baseUrl/users/$id/status?status=$status"),
-      headers: headers,
-    );
 
-    print("SET STATUS CODE: ${res.statusCode}");
-    print("SET STATUS BODY: ${res.body}");
+  Future<ApiResult<void>> setStatus(int id, String status) async {
+    try {
+      final res = await http.patch(
+        Uri.parse("$baseUrl/users/$id/status?status=$status"),
+        headers: headers,
+      );
 
-    if (res.statusCode != 200) {
-      final json = jsonDecode(res.body);
-      throw Exception(json["message"] ?? "Set status failed");
+      final body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+
+      print("STATUS CODE: ${res.statusCode}");
+      print("STATUS BODY: ${res.body}");
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        return ApiResult(
+          success: false,
+          message: body?["message"] ?? "HTTP ${res.statusCode}",
+        );
+      }
+
+      return ApiResult(
+        success: true,
+        message: body?["message"] ?? "Cập nhật thành công",
+      );
+    } catch (e) {
+      return ApiResult(success: false, message: e.toString());
     }
   }
 
   // =========================
-  // DELETE EMPLOYEE
+  // DELETE
   // =========================
+
   Future<void> delete(int id) async {
     final res = await http.delete(
       Uri.parse("$baseUrl/users/$id"),
@@ -135,8 +155,9 @@ class EmployeeService {
     print("DELETE STATUS: ${res.statusCode}");
     print("DELETE BODY: ${res.body}");
 
-    if (res.statusCode != 200 && res.statusCode != 204) {
+    if (res.statusCode < 200 || res.statusCode >= 300) {
       final json = jsonDecode(res.body);
+
       throw Exception(json["message"] ?? "Delete failed");
     }
   }

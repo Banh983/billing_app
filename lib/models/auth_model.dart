@@ -3,7 +3,7 @@ class AuthModel {
 
   final String fullName;
 
-  final String email;
+  final String username;
 
   final String? phone;
 
@@ -20,7 +20,7 @@ class AuthModel {
   AuthModel({
     required this.id,
     required this.fullName,
-    required this.email,
+    required this.username,
     this.phone,
     required this.role,
     this.status,
@@ -30,9 +30,6 @@ class AuthModel {
   });
 
   factory AuthModel.fromJson(Map<String, dynamic> json) {
-    // support both:
-    // login response -> data
-    // account response -> data nested
     final data = json["data"] ?? json;
 
     return AuthModel(
@@ -40,7 +37,7 @@ class AuthModel {
 
       fullName: data["fullName"] ?? "",
 
-      email: data["email"] ?? "",
+      username: data["username"] ?? "",
 
       phone: data["phone"],
 
@@ -52,6 +49,7 @@ class AuthModel {
 
       updatedAt: data["updatedAt"],
 
+      // login response mới có token
       accessToken: data["accessToken"] ?? "",
     );
   }

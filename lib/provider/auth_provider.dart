@@ -20,7 +20,7 @@ class AuthProvider extends ChangeNotifier {
 
   bool loading = false;
 
-  String? emailError;
+  String? usernameError;
 
   String? passwordError;
 
@@ -46,7 +46,7 @@ class AuthProvider extends ChangeNotifier {
   // LOGIN
   // ======================
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String username, String password) async {
     loading = true;
 
     _clearErrors();
@@ -58,7 +58,7 @@ class AuthProvider extends ChangeNotifier {
       // LOGIN API
       // ======================
 
-      final loginUser = await _service.login(email, password);
+      final loginUser = await _service.login(username, password);
 
       // lưu user tạm để lấy token
       user = loginUser;
@@ -71,11 +71,11 @@ class AuthProvider extends ChangeNotifier {
         try {
           final fullUser = await _service.getAccount(loginUser.accessToken);
 
-          // giữ lại access token từ login
+          // giữ token từ login
           user = AuthModel(
             id: fullUser.id,
             fullName: fullUser.fullName,
-            email: fullUser.email,
+            username: fullUser.username,
             phone: fullUser.phone,
             role: fullUser.role,
             status: fullUser.status,
@@ -84,7 +84,7 @@ class AuthProvider extends ChangeNotifier {
             accessToken: loginUser.accessToken,
           );
         } catch (e) {
-          // nếu get account lỗi thì vẫn dùng data login
+          // fallback nếu account lỗi
           user = loginUser;
         }
       }
@@ -179,7 +179,7 @@ class AuthProvider extends ChangeNotifier {
   // ======================
 
   void _clearErrors() {
-    emailError = null;
+    usernameError = null;
 
     passwordError = null;
 
@@ -191,19 +191,38 @@ class AuthProvider extends ChangeNotifier {
   // ======================
 
   void _mapError(String raw) {
+    // lỗi dạng string thường
     if (!raw.contains("field")) {
       generalError = raw;
       return;
     }
 
     final regex = RegExp(r'field:\s*([^,]+),\s*message:\s*([^}]+)');
+
     final matches = regex.allMatches(raw);
 
     for (final m in matches) {
       final field = m.group(1)?.trim();
+
       final message = m.group(2)?.trim();
 
       switch (field) {
+        // ======================
+        // LOGIN
+        // ======================
+
+        case "username":
+          usernameError = message;
+          break;
+
+        case "password":
+          passwordError = message;
+          break;
+
+        // ======================
+        // CHANGE PASSWORD
+        // ======================
+
         case "oldPassword":
           generalError = message;
           break;
@@ -212,16 +231,16 @@ class AuthProvider extends ChangeNotifier {
           generalError = message;
           break;
 
-        case "password":
+        case "confirmPassword":
           generalError = message;
           break;
 
         default:
-          // ❌ IGNORE tất cả field khác (phone, email, role,...)
-          break;
+          generalError = message;
       }
     }
   }
+
   // ======================
   // DISPOSE
   // ======================

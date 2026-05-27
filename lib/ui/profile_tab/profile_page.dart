@@ -19,10 +19,6 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    // =========================
-    // SAFE AVATAR LETTER
-    // =========================
-
     final String fullName = (user?.fullName ?? "").toString().trim();
 
     final String avatarLetter = fullName.isNotEmpty
@@ -154,10 +150,13 @@ class ProfilePage extends StatelessWidget {
 
                       const Divider(height: 28),
 
+                      // =========================
+                      // USERNAME
+                      // =========================
                       InfoTile(
-                        icon: Icons.email_outlined,
-                        title: "Email",
-                        value: user?.email,
+                        icon: Icons.account_circle_outlined,
+                        title: "Username",
+                        value: user?.username,
                       ),
 
                       const Divider(height: 28),
@@ -207,7 +206,7 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 18),
 
               // =========================
-              // SECURITY CARD
+              // CHANGE PASSWORD CARD
               // =========================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

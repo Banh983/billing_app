@@ -15,7 +15,7 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = "http://192.168.97.204:8080";
+  static const String baseUrl = "http://192.168.1.73:8080";
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,6 @@ class MyApp extends StatelessWidget {
           update: (_, auth, employeeProvider) {
             final token = auth.token ?? "";
 
-            // 👉 KHÔNG tạo mới provider
             employeeProvider!.service = EmployeeService(
               baseUrl: baseUrl,
               token: token,
