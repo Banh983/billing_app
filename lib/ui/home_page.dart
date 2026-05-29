@@ -1,3 +1,6 @@
+import 'package:billing_app/ui/billing_period_tab/billing_period_page.dart';
+import 'package:billing_app/ui/customer_tab/customer_page.dart';
+import 'package:billing_app/ui/dashboard_tab/dashboard_page.dart';
 import 'package:billing_app/ui/employee_tab/employee_page.dart';
 import 'package:billing_app/ui/profile_tab/profile_page.dart';
 import 'package:flutter/material.dart';
@@ -23,12 +26,12 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     pages = [
-      const Center(child: Text("Dashboard")), // 0
-      const Center(child: Text("Hóa đơn chưa thu")), // 1
-      const Center(child: Text("Khách hàng")), // 2
-      const EmployeePage(), // 3
-      const Center(child: Text("Báo cáo")), // 4
-      ProfilePage(user: widget.user, token: widget.token), // 5
+      DashboardPage(),
+      BillingPeriodPage(),
+      CustomerPage(),
+      EmployeePage(),
+      const Center(child: Text("Báo cáo")),
+      ProfilePage(user: widget.user, token: widget.token),
     ];
   }
 

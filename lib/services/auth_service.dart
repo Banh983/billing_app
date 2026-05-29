@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/auth_model.dart';
 
 class AuthService {
-  final String baseUrl = "http://192.168.1.73:8080";
+  final String baseUrl = "http://192.168.1.158:8080";
 
   // ======================
   // LOGIN
