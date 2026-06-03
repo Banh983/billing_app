@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../models/billing_record.dart';
+import '../models/billing_record_model.dart';
 
 class BillingRecordService {
   final String baseUrl;
@@ -14,54 +14,66 @@ class BillingRecordService {
     "Authorization": "Bearer $token",
   };
 
-  /// =========================
-  /// GET RECORDS BY BILLING PERIOD
-  /// (FIX: backend KHÔNG có /records endpoint)
-  /// =========================
-  Future<List<BillingRecord>> getRecordsByPeriod(int periodId) async {
-    final uri = Uri.parse("$baseUrl/billing-periods/$periodId");
+  Future<List<BillingRecordModel>> getRecordsByPeriod(int periodId) async {
+    final uri = Uri.parse(
+      "$baseUrl/records?periodId=$periodId&page=0&size=100",
+    );
 
     final response = await http.get(uri, headers: headers);
-
-    print("GET BILLING PERIOD DETAIL: ${response.body}");
 
     final body = jsonDecode(response.body);
 
     if (response.statusCode != 200) {
-      throw Exception(body["message"] ?? "Không thể lấy dữ liệu kỳ cước");
+      throw Exception(body["message"] ?? "Không thể tải danh sách khách hàng");
     }
 
-    /// =========================
-    /// HANDLE MULTIPLE POSSIBLE BACKEND STRUCTURES
-    /// =========================
+    final List<dynamic> content = body["data"]?["content"] ?? [];
 
-    dynamic data;
+    return content.map((e) => BillingRecordModel.fromJson(e)).toList();
+  }
 
-    // Case 1: API wrap kiểu {data: {...}}
-    if (body is Map && body["data"] != null) {
-      data = body["data"];
-    } else {
-      data = body;
+  Future<BillingRecordModel> getRecordDetail(int id) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/records/$id"),
+      headers: headers,
+    );
+
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode != 200) {
+      throw Exception(body["message"] ?? "Không thể lấy chi tiết khách hàng");
     }
 
-    /// records có thể nằm trong:
-    /// - data.records
-    /// - data.billingRecords
-    /// - data.content (paging style)
-    List<dynamic> records = [];
+    return BillingRecordModel.fromJson(body["data"]);
+  }
 
-    if (data is Map) {
-      if (data["records"] is List) {
-        records = data["records"];
-      } else if (data["billingRecords"] is List) {
-        records = data["billingRecords"];
-      } else if (data["content"] is List) {
-        records = data["content"];
-      }
+  Future<void> printBill({
+    required int recordId,
+    required double collectedAmount,
+  }) async {
+    final response = await http.patch(
+      Uri.parse("$baseUrl/records/$recordId/print-bill"),
+      headers: headers,
+      body: jsonEncode({"collectedAmount": collectedAmount}),
+    );
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+
+      throw Exception(body["message"] ?? "Không thể in bill");
     }
+  }
 
-    return records
-        .map((e) => BillingRecord.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<void> markDebt(int recordId) async {
+    final response = await http.patch(
+      Uri.parse("$baseUrl/records/$recordId/mark-debt"),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+
+      throw Exception(body["message"] ?? "Không thể gạch nợ");
+    }
   }
 }

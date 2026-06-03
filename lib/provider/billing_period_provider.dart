@@ -1,8 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
-import '../models/billing_period.dart';
+import '../models/billing_period_model.dart';
 import '../services/billing_period_service.dart';
 
 class BillingPeriodProvider extends ChangeNotifier {
@@ -10,20 +8,16 @@ class BillingPeriodProvider extends ChangeNotifier {
 
   BillingPeriodProvider(this.service);
 
-  List<BillingPeriod> periods = [];
-
-  BillingPeriod? selectedPeriod;
-
   bool isLoading = false;
 
   String? error;
 
-  /// =========================
-  /// GET ALL
-  /// =========================
+  List<BillingPeriodModel> periods = [];
+
   Future<void> fetchBillingPeriods() async {
     try {
       isLoading = true;
+
       error = null;
 
       notifyListeners();
@@ -31,54 +25,32 @@ class BillingPeriodProvider extends ChangeNotifier {
       periods = await service.getBillingPeriods();
     } catch (e) {
       error = e.toString();
+
+      debugPrint(error);
     } finally {
       isLoading = false;
+
       notifyListeners();
     }
   }
 
-  /// =========================
-  /// GET DETAIL
-  /// =========================
-  Future<void> fetchBillingPeriodDetail(int id) async {
+  Future<void> refresh() async {
+    await fetchBillingPeriods();
+  }
+
+  void clearError() {
+    error = null;
+
+    notifyListeners();
+  }
+
+  Future<void> closePeriod(int id) async {
     try {
-      isLoading = true;
+      await service.closePeriod(id);
 
-      notifyListeners();
-
-      selectedPeriod = await service.getBillingPeriodById(id);
-    } finally {
-      isLoading = false;
-      notifyListeners();
+      await fetchBillingPeriods();
+    } catch (e) {
+      rethrow;
     }
-  }
-
-  /// =========================
-  /// CLOSE PERIOD
-  /// =========================
-  Future<String> closePeriod(int id) async {
-    final message = await service.closeBillingPeriod(id);
-
-    await fetchBillingPeriods();
-
-    return message;
-  }
-
-  /// =========================
-  /// IMPORT
-  /// =========================
-  Future<String> importExcel(File file) async {
-    final message = await service.importExcel(file);
-
-    await fetchBillingPeriods();
-
-    return message;
-  }
-
-  /// =========================
-  /// DOWNLOAD TEMPLATE
-  /// =========================
-  Future<String> downloadTemplate() async {
-    return await service.downloadTemplate();
   }
 }

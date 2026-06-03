@@ -21,7 +21,7 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = "http://192.168.1.158:8080";
+  static const String baseUrl = "http://192.168.1.88:8080";
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +42,15 @@ class MyApp extends StatelessWidget {
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
-            previous!.service = EmployeeService(baseUrl: baseUrl, token: token);
+            final provider =
+                previous ??
+                EmployeeProvider(
+                  EmployeeService(baseUrl: baseUrl, token: token),
+                );
 
-            return previous;
+            provider.service = EmployeeService(baseUrl: baseUrl, token: token);
+
+            return provider;
           },
         ),
 
@@ -59,12 +65,18 @@ class MyApp extends StatelessWidget {
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
-            previous!.service = BillingPeriodService(
+            final provider =
+                previous ??
+                BillingPeriodProvider(
+                  BillingPeriodService(baseUrl: baseUrl, token: token),
+                );
+
+            provider.service = BillingPeriodService(
               baseUrl: baseUrl,
               token: token,
             );
 
-            return previous;
+            return provider;
           },
         ),
 
@@ -78,9 +90,15 @@ class MyApp extends StatelessWidget {
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
-            previous!.service = CustomerService(baseUrl: baseUrl, token: token);
+            final provider =
+                previous ??
+                CustomerProvider(
+                  CustomerService(baseUrl: baseUrl, token: token),
+                );
 
-            return previous;
+            provider.service = CustomerService(baseUrl: baseUrl, token: token);
+
+            return provider;
           },
         ),
 
@@ -92,15 +110,12 @@ class MyApp extends StatelessWidget {
             BillingRecordService(baseUrl: baseUrl, token: ""),
           ),
 
-          update: (_, auth, previous) {
+          update: (_, auth, _) {
             final token = auth.token ?? "";
 
-            previous!.service = BillingRecordService(
-              baseUrl: baseUrl,
-              token: token,
+            return BillingRecordProvider(
+              BillingRecordService(baseUrl: baseUrl, token: token),
             );
-
-            return previous;
           },
         ),
       ],

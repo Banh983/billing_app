@@ -54,4 +54,28 @@ class FormatHelper {
       return date.toString();
     }
   }
+
+  // =========================
+  // MONEY
+  // =========================
+
+  static String formatMoney(num? amount) {
+    if (amount == null) {
+      return "0 đ";
+    }
+
+    return "${NumberFormat("#,###", "vi_VN").format(amount)} đ";
+  }
+
+  // =========================
+  // MONEY NO UNIT
+  // =========================
+
+  static String formatMoneyOnly(num? amount) {
+    if (amount == null) {
+      return "0";
+    }
+
+    return NumberFormat("#,###", "vi_VN").format(amount);
+  }
 }

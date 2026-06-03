@@ -1,5 +1,6 @@
 import 'package:billing_app/provider/auth_provider.dart';
 import 'package:billing_app/ui/helpers/format_helper.dart';
+import 'package:billing_app/ui/profile_tab/bluetooth_printer_page.dart';
 import 'package:billing_app/ui/profile_tab/components/info_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -275,8 +276,73 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
 
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+
+                    borderRadius: BorderRadius.circular(24),
+
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 8,
+                    ),
+
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+
+                      child: const Icon(Icons.print, color: Colors.blue),
+                    ),
+
+                    title: const Text(
+                      "Máy in Bluetooth",
+
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+
+                    subtitle: const Text("Kết nối máy in bill cầm tay"),
+
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BluetoothPrinterPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
               // =========================
               // LOGOUT BUTTON
               // =========================

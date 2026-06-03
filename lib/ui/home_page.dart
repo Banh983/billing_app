@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
 
     pages = [
       DashboardPage(),
-      BillingPeriodPage(),
+      BillingPeriodPage(), // trước đó gọi CollectedBillsPage() để test, giờ đổi lại thành BillingPeriodPage()
       CustomerPage(),
       EmployeePage(),
       const Center(child: Text("Báo cáo")),

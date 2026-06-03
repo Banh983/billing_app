@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/billing_period.dart';
+import '../../../models/billing_period_model.dart';
 
 class BillingPeriodCard extends StatelessWidget {
-  final BillingPeriod billingPeriod;
+  final BillingPeriodModel billingPeriod;
 
   final VoidCallback onTap;
   final VoidCallback onClose;
@@ -21,29 +21,22 @@ class BillingPeriodCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
-
       decoration: BoxDecoration(
         color: Colors.white,
-
         borderRadius: BorderRadius.circular(24),
-
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-
         onTap: onTap,
-
         child: Padding(
           padding: const EdgeInsets.all(20),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -52,19 +45,15 @@ class BillingPeriodCard extends StatelessWidget {
                   Container(
                     width: 60,
                     height: 60,
-
                     decoration: BoxDecoration(
                       color: isClosed
                           ? Colors.grey.shade300
                           : Colors.red.shade50,
-
                       borderRadius: BorderRadius.circular(18),
                     ),
-
                     child: Icon(
                       Icons.calendar_month,
                       size: 32,
-
                       color: isClosed ? Colors.grey : Colors.red,
                     ),
                   ),
@@ -76,8 +65,7 @@ class BillingPeriodCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          billingPeriod.name,
-
+                          billingPeriod.displayName,
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -90,7 +78,6 @@ class BillingPeriodCard extends StatelessWidget {
                           isClosed
                               ? "Kỳ cước đã khóa dữ liệu"
                               : "Đang vận hành thu cước",
-
                           style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ],
@@ -102,21 +89,16 @@ class BillingPeriodCard extends StatelessWidget {
                       horizontal: 14,
                       vertical: 8,
                     ),
-
                     decoration: BoxDecoration(
                       color: isClosed
                           ? Colors.grey.shade200
                           : Colors.red.shade50,
-
                       borderRadius: BorderRadius.circular(30),
                     ),
-
                     child: Text(
                       isClosed ? "ĐÃ ĐÓNG" : "ĐANG MỞ",
-
                       style: TextStyle(
                         color: isClosed ? Colors.grey : Colors.red,
-
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -128,20 +110,17 @@ class BillingPeriodCard extends StatelessWidget {
 
               Container(
                 padding: const EdgeInsets.all(16),
-
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
-
                   borderRadius: BorderRadius.circular(18),
                 ),
-
                 child: Column(
                   children: [
-                    buildItem("Tháng", "${billingPeriod.month}"),
+                    buildItem("Tháng", billingPeriod.month.toString()),
 
                     const SizedBox(height: 12),
 
-                    buildItem("Năm", "${billingPeriod.year}"),
+                    buildItem("Năm", billingPeriod.year.toString()),
 
                     const SizedBox(height: 12),
 
@@ -157,18 +136,12 @@ class BillingPeriodCard extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onTap,
-
                       icon: const Icon(Icons.receipt_long),
-
                       label: const Text("Quản lý"),
-
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
-
                         side: BorderSide(color: Colors.red.shade200),
-
                         padding: const EdgeInsets.symmetric(vertical: 16),
-
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -181,20 +154,13 @@ class BillingPeriodCard extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: isClosed ? null : onClose,
-
                       icon: Icon(isClosed ? Icons.lock : Icons.lock_open),
-
                       label: Text(isClosed ? "Đã đóng" : "Đóng kỳ"),
-
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-
                         foregroundColor: Colors.white,
-
                         disabledBackgroundColor: Colors.grey.shade300,
-
                         padding: const EdgeInsets.symmetric(vertical: 16),
-
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -216,7 +182,6 @@ class BillingPeriodCard extends StatelessWidget {
         Expanded(
           child: Text(title, style: TextStyle(color: Colors.grey.shade700)),
         ),
-
         Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
       ],
     );
