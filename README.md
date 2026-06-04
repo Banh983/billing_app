@@ -2,12 +2,20 @@
 
 Ứng dụng Flutter dùng để kết nối với Billing Platform Backend, hỗ trợ quản lý hóa đơn và in phiếu thu qua máy in Bluetooth.
 
-## Yêu cầu
+## Yêu cầu môi trường
 
-* Flutter SDK
+* Flutter 3.38.4
+* Dart 3.10.3
 * Android Studio
+* Android SDK
 * Thiết bị Android hoặc Android Emulator
 * Billing Platform Backend đang hoạt động
+
+Kiểm tra phiên bản Flutter:
+
+```bash
+flutter --version
+```
 
 ## Cài đặt dự án
 
@@ -40,12 +48,6 @@ class AppConfig {
 }
 ```
 
-### Lưu ý
-
-* Điện thoại và máy tính chạy Backend phải kết nối cùng mạng **WiFi Ninh Kieu 1**.
-* Backend phải được khởi động trước khi sử dụng ứng dụng.
-* Không sử dụng `localhost` hoặc `127.0.0.1`.
-
 Ví dụ:
 
 ```dart
@@ -53,6 +55,12 @@ class AppConfig {
   static const String baseUrl = 'http://192.168.1.164:8080';
 }
 ```
+
+### Lưu ý
+
+* Điện thoại và máy tính chạy Backend phải kết nối cùng mạng **WiFi Ninh Kieu 1**.
+* Backend phải được khởi động trước khi sử dụng ứng dụng.
+* Không sử dụng `localhost` hoặc `127.0.0.1`.
 
 ## Chạy ứng dụng
 
@@ -83,11 +91,11 @@ build/app/outputs/flutter-apk/app-release.apk
    * Chọn máy in trong ứng dụng.
    * Tiến hành in phiếu thu.
 
-## Một số lỗi thường gặp
+## Xử lý lỗi
 
 ### Không kết nối được Backend
 
-* Kiểm tra Backend đã chạy chưa.
+* Kiểm tra Backend đã chạy.
 * Kiểm tra địa chỉ IPv4 trong `AppConfig`.
 * Kiểm tra điện thoại và máy tính có cùng mạng WiFi hay không.
 * Kiểm tra Firewall của Windows.
@@ -100,8 +108,8 @@ build/app/outputs/flutter-apk/app-release.apk
 
 ## Công nghệ sử dụng
 
-* Flutter
-* Dart
+* Flutter 3.38.4
+* Dart 3.10.3
 * REST API
 * Bluetooth ESC/POS
 * Spring Boot Backend
