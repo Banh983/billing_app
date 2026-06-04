@@ -1,3 +1,4 @@
+import 'package:billing_app/core/app_config.dart';
 import 'package:billing_app/provider/auth_provider.dart';
 import 'package:billing_app/provider/billing_period_provider.dart';
 import 'package:billing_app/provider/billing_record_provider.dart';
@@ -26,7 +27,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = "http://192.168.1.164:8080";
+  final String baseUrl = AppConfig.baseUrl;
 
   @override
   Widget build(BuildContext context) {

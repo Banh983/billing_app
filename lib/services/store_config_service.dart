@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:billing_app/core/app_config.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/store_config_model.dart';
 
 class StoreConfigService {
-  final String baseUrl = "http://192.168.1.164:8080";
+  final String baseUrl = AppConfig.baseUrl;
 
   Future<StoreConfigModel> getConfig({required String token}) async {
     final res = await http.get(
