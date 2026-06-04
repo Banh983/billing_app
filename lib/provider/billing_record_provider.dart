@@ -45,9 +45,6 @@ class BillingRecordProvider extends ChangeNotifier {
 
       final data = await service.getRecordDetail(recordId);
 
-      selectedRecord = null;
-      notifyListeners();
-
       selectedRecord = data;
     } catch (e) {
       error = e.toString();
@@ -69,14 +66,17 @@ class BillingRecordProvider extends ChangeNotifier {
 
       final current = await service.getRecordDetail(recordId);
 
+      if (current.collectionStatus != "CHUA_THU") {
+        selectedRecord = current;
+        return;
+      }
+
       await service.printBill(
         recordId: recordId,
         collectedAmount: current.amountDue,
       );
 
-      final updated = await service.getRecordDetail(recordId);
-
-      selectedRecord = updated;
+      selectedRecord = await service.getRecordDetail(recordId);
     } catch (e) {
       error = e.toString();
       rethrow;
@@ -100,6 +100,7 @@ class BillingRecordProvider extends ChangeNotifier {
       selectedRecord = await service.getRecordDetail(recordId);
     } catch (e) {
       error = e.toString();
+      rethrow;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -112,11 +113,13 @@ class BillingRecordProvider extends ChangeNotifier {
   Future<void> refresh(int recordId) async {
     try {
       isLoading = true;
+      error = null;
       notifyListeners();
 
       selectedRecord = await service.getRecordDetail(recordId);
     } catch (e) {
       error = e.toString();
+      rethrow;
     } finally {
       isLoading = false;
       notifyListeners();

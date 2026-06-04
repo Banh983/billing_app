@@ -1,165 +1,45 @@
-// ============================================================
-// pubspec.yaml:
-//   print_bluetooth_thermal: ^1.2.1
-//   esc_pos_utils_plus: ^2.0.4
-// ============================================================
+import 'dart:typed_data';
 
+import 'package:billing_app/models/store_config_model.dart';
+import 'package:billing_app/services/store_config_service.dart';
+import 'package:billing_app/ui/billing_period_tab/components/printer_settings_card.dart';
+import 'package:billing_app/ui/billing_period_tab/components/record_detail_card.dart';
 import 'package:billing_app/ui/billing_period_tab/print_preview_page.dart';
+import 'package:charset_converter/charset_converter.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../models/bill_data_model.dart';
+import '../../provider/auth_provider.dart';
 import '../../provider/billing_record_provider.dart';
+import '../../services/record_print_service.dart';
+import 'components/info_tile.dart';
 
-// ============================================================
-// HELPER: Bỏ dấu tiếng Việt → ASCII
-// (máy in nhiệt không hỗ trợ UTF-8)
-// Bước 1: map từng ký tự có dấu → không dấu
-// Bước 2: fallback — xóa mọi ký tự còn lại ngoài ASCII printable
-// ============================================================
-String removeDiacritics(String s) {
-  const Map<String, String> _map = {
-    'à': 'a',
-    'á': 'a',
-    'â': 'a',
-    'ã': 'a',
-    'ä': 'a',
-    'å': 'a',
-    'À': 'A',
-    'Á': 'A',
-    'Â': 'A',
-    'Ã': 'A',
-    'Ä': 'A',
-    'Å': 'A',
-    'ă': 'a',
-    'ắ': 'a',
-    'ặ': 'a',
-    'ằ': 'a',
-    'ẳ': 'a',
-    'ẵ': 'a',
-    'Ă': 'A',
-    'Ắ': 'A',
-    'Ặ': 'A',
-    'Ằ': 'A',
-    'Ẳ': 'A',
-    'Ẵ': 'A',
-    'ấ': 'a',
-    'ậ': 'a',
-    'ầ': 'a',
-    'ẩ': 'a',
-    'ẫ': 'a',
-    'Ấ': 'A',
-    'Ậ': 'A',
-    'Ầ': 'A',
-    'Ẩ': 'A',
-    'Ẫ': 'A',
-    'è': 'e',
-    'é': 'e',
-    'ê': 'e',
-    'ë': 'e',
-    'È': 'E',
-    'É': 'E',
-    'Ê': 'E',
-    'Ë': 'E',
-    'ề': 'e',
-    'ế': 'e',
-    'ệ': 'e',
-    'ể': 'e',
-    'ễ': 'e',
-    'Ề': 'E',
-    'Ế': 'E',
-    'Ệ': 'E',
-    'Ể': 'E',
-    'Ễ': 'E',
-    'ì': 'i',
-    'í': 'i',
-    'î': 'i',
-    'ï': 'i',
-    'Ì': 'I',
-    'Í': 'I',
-    'Î': 'I',
-    'Ï': 'I',
-    'ò': 'o',
-    'ó': 'o',
-    'ô': 'o',
-    'õ': 'o',
-    'ö': 'o',
-    'Ò': 'O',
-    'Ó': 'O',
-    'Ô': 'O',
-    'Õ': 'O',
-    'Ö': 'O',
-    'ồ': 'o',
-    'ố': 'o',
-    'ộ': 'o',
-    'ổ': 'o',
-    'ỗ': 'o',
-    'Ồ': 'O',
-    'Ố': 'O',
-    'Ộ': 'O',
-    'Ổ': 'O',
-    'Ỗ': 'O',
-    'ơ': 'o',
-    'ờ': 'o',
-    'ớ': 'o',
-    'ợ': 'o',
-    'ở': 'o',
-    'ỡ': 'o',
-    'Ơ': 'O',
-    'Ờ': 'O',
-    'Ớ': 'O',
-    'Ợ': 'O',
-    'Ở': 'O',
-    'Ỡ': 'O',
-    'ù': 'u',
-    'ú': 'u',
-    'û': 'u',
-    'ü': 'u',
-    'Ù': 'U',
-    'Ú': 'U',
-    'Û': 'U',
-    'Ü': 'U',
-    'ư': 'u',
-    'ừ': 'u',
-    'ứ': 'u',
-    'ự': 'u',
-    'ử': 'u',
-    'ữ': 'u',
-    'Ư': 'U',
-    'Ừ': 'U',
-    'Ứ': 'U',
-    'Ự': 'U',
-    'Ử': 'U',
-    'Ữ': 'U',
-    'ỳ': 'y',
-    'ý': 'y',
-    'ỵ': 'y',
-    'ỷ': 'y',
-    'ỹ': 'y',
-    'Ỳ': 'Y',
-    'Ý': 'Y',
-    'Ỵ': 'Y',
-    'Ỷ': 'Y',
-    'Ỹ': 'Y',
-    'đ': 'd',
-    'Đ': 'D',
-    'ñ': 'n',
-    'Ñ': 'N',
-    'ç': 'c',
-    'Ç': 'C',
-  };
-  // Bước 1: thay thế theo map
-  final mapped = s.split('').map((c) => _map[c] ?? c).join();
-  // Bước 2: xóa mọi ký tự không nằm trong ASCII printable (32–126)
-  // để đảm bảo không có ký tự lạ nào lọt qua
-  return mapped.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+Future<Uint8List> encodeViet(String s) async {
+  try {
+    return await CharsetConverter.encode("windows-1258", s);
+  } catch (_) {
+    return Uint8List.fromList(s.codeUnits);
+  }
 }
 
-// Shorthand
-String p(String s) => removeDiacritics(s);
+List<int> selectCodePage1258() => [0x1B, 0x74, 0x1E];
+
+Future<List<int>> vietText(
+  Generator gen,
+  String text, {
+  PosStyles styles = const PosStyles(),
+  int? linesAfter,
+}) async {
+  final encoded = await encodeViet(text);
+
+  return gen.textEncoded(encoded, styles: styles, linesAfter: linesAfter ?? 0);
+}
 
 class BillingRecordDetailPage extends StatefulWidget {
   final int recordId;
@@ -171,30 +51,52 @@ class BillingRecordDetailPage extends StatefulWidget {
       _BillingRecordDetailPageState();
 }
 
-enum PaperSizeType { mm58, mm80 }
-
 class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
   final currencyFormat = NumberFormat("#,###", "vi_VN");
+  final dateFormat = DateFormat("dd/MM/yyyy HH:mm", "vi_VN");
+
+  final RecordPrintService _recordPrintService = RecordPrintService();
+  final StoreConfigService _storeConfigService = StoreConfigService();
 
   BluetoothInfo? selectedPrinter;
   PaperSizeType paperSize = PaperSizeType.mm58;
+
   bool _isPrinting = false;
+  bool _isOpeningPreview = false;
 
   @override
   void initState() {
     super.initState();
+
     Future.microtask(() {
       context.read<BillingRecordProvider>().fetchRecordDetail(widget.recordId);
     });
   }
 
-  // ================= CHỌN MÁY IN =================
   Future<void> _selectPrinter() async {
+    final bluetoothConnect = await Permission.bluetoothConnect.request();
+    final bluetoothScan = await Permission.bluetoothScan.request();
+
+    if (!bluetoothConnect.isGranted || !bluetoothScan.isGranted) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Bạn cần cho phép quyền Bluetooth để chọn máy in"),
+        ),
+      );
+      return;
+    }
+
     final bool isEnabled = await PrintBluetoothThermal.bluetoothEnabled;
+
     if (!isEnabled) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng bật Bluetooth trước")),
+        const SnackBar(
+          content: Text("Bluetooth chưa được bật trên điện thoại"),
+        ),
       );
       return;
     }
@@ -249,14 +151,16 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
     );
 
     if (chosen == null) return;
+
     setState(() => selectedPrinter = chosen);
+
     if (!mounted) return;
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text("Đã chọn: ${chosen.name}")));
   }
 
-  // ================= CHỌN KHỔ GIẤY =================
   Future<void> _selectPaperSize() async {
     final result = await showModalBottomSheet<PaperSizeType>(
       context: context,
@@ -294,23 +198,29 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
         ],
       ),
     );
-    if (result != null) setState(() => paperSize = result);
+
+    if (result != null) {
+      setState(() => paperSize = result);
+    }
   }
 
-  // ================= BUILD TICKET BYTES =================
-  Future<List<int>> _buildTicketBytes(dynamic updated) async {
+  Future<List<int>> _buildTicketBytes(BillDataModel bill) async {
     final profile = await CapabilityProfile.load();
+
     final paper = paperSize == PaperSizeType.mm58
         ? PaperSize.mm58
         : PaperSize.mm80;
+
     final generator = Generator(paper, profile);
 
     List<int> bytes = [];
-    bytes += generator.reset();
 
-    // HEADER — tất cả phải bỏ dấu
-    bytes += generator.text(
-      p('VIETTEL PHÙNG HIỆP'),
+    bytes += generator.reset();
+    bytes += selectCodePage1258();
+
+    bytes += await vietText(
+      generator,
+      bill.storeName.isNotEmpty ? bill.storeName : "PHIẾU THU",
       styles: const PosStyles(
         align: PosAlign.center,
         bold: true,
@@ -318,38 +228,81 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
         width: PosTextSize.size2,
       ),
     );
-    bytes += generator.text(
-      p('PHIẾU THU CƯỚC VIỄN THÔNG'),
+
+    if (bill.address.isNotEmpty) {
+      bytes += await vietText(
+        generator,
+        bill.address,
+        styles: const PosStyles(align: PosAlign.center),
+      );
+    }
+
+    if (bill.hotline.isNotEmpty) {
+      bytes += await vietText(
+        generator,
+        "Hotline: ${bill.hotline}",
+        styles: const PosStyles(align: PosAlign.center),
+      );
+    }
+
+    bytes += generator.emptyLines(1);
+
+    bytes += await vietText(
+      generator,
+      "PHIẾU THU CƯỚC VIỄN THÔNG",
       styles: const PosStyles(align: PosAlign.center, bold: true),
     );
-    bytes += generator.text(
-      '${p(updated.customerCode)}-'
-      '${DateFormat("ddMMyyyy").format(DateTime.now())}',
+
+    bytes += await vietText(
+      generator,
+      "${bill.customerCode}-${DateFormat("ddMMyyyy").format(DateTime.now())}",
       styles: const PosStyles(align: PosAlign.center),
     );
 
     bytes += generator.hr();
 
-    // THÔNG TIN KHÁCH HÀNG
-    bytes += generator.text(p('Khách hàng: ${updated.customerName}'));
-    bytes += generator.text(p('Mã KH:      ${updated.customerCode}'));
-    bytes += generator.text(p('SĐT:        ${updated.phoneNumber}'));
-    bytes += generator.text(p('Địa chỉ:   ${updated.fullAddress ?? ""}'));
+    bytes += await vietText(generator, "Khách hàng: ${bill.customerName}");
+    bytes += await vietText(generator, "Mã KH:      ${bill.customerCode}");
+
+    if (bill.subscriberNumber.isNotEmpty) {
+      bytes += await vietText(
+        generator,
+        "Số TB:      ${bill.subscriberNumber}",
+      );
+    }
+
+    if (bill.fullAddress.isNotEmpty) {
+      bytes += await vietText(generator, "Địa chỉ:   ${bill.fullAddress}");
+    }
 
     bytes += generator.hr();
 
-    // CHI TIẾT HÓA ĐƠN
-    bytes += generator.text(p('Kỳ hoá đơn: ${updated.billingPeriodName}'));
+    bytes += await vietText(generator, "Kỳ hoá đơn: ${bill.billingPeriodName}");
+
+    if (bill.serviceType.isNotEmpty) {
+      bytes += await vietText(generator, "Dịch vụ:    ${bill.serviceType}");
+    }
+
+    if (bill.collectedAt != null) {
+      bytes += await vietText(
+        generator,
+        "Ngày thu:   ${dateFormat.format(bill.collectedAt!.toLocal())}",
+      );
+    }
+
     bytes += generator.emptyLines(1);
+
+    final colHeader1 = await encodeViet("NỘI DUNG");
+    final colHeader2 = await encodeViet("TIỀN");
 
     bytes += generator.row([
       PosColumn(
-        text: p('NỘI DUNG'),
+        textEncoded: colHeader1,
         width: 8,
         styles: const PosStyles(bold: true, underline: true),
       ),
       PosColumn(
-        text: p('TIỀN'),
+        textEncoded: colHeader2,
         width: 4,
         styles: const PosStyles(
           align: PosAlign.right,
@@ -359,10 +312,14 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
       ),
     ]);
 
+    final itemName = await encodeViet(
+      bill.serviceType.isNotEmpty ? bill.serviceType : "Cước viễn thông",
+    );
+
     bytes += generator.row([
-      PosColumn(text: p('Cước viễn thông'), width: 8),
+      PosColumn(textEncoded: itemName, width: 8),
       PosColumn(
-        text: currencyFormat.format(updated.amountDue),
+        text: currencyFormat.format(bill.amountDue),
         width: 4,
         styles: const PosStyles(align: PosAlign.right),
       ),
@@ -370,14 +327,16 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
     bytes += generator.hr();
 
+    final totalLabel = await encodeViet("TỔNG CỘNG");
+
     bytes += generator.row([
       PosColumn(
-        text: p('TỔNG CỘNG'),
+        textEncoded: totalLabel,
         width: 6,
         styles: const PosStyles(bold: true),
       ),
       PosColumn(
-        text: currencyFormat.format(updated.amountDue),
+        text: currencyFormat.format(bill.amountDue),
         width: 6,
         styles: const PosStyles(align: PosAlign.right, bold: true),
       ),
@@ -385,12 +344,15 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
     bytes += generator.hr();
 
-    bytes += generator.text(
-      p('Số tiền thanh toán:'),
+    bytes += await vietText(
+      generator,
+      "Số tiền đã thu:",
       styles: const PosStyles(bold: true),
     );
-    bytes += generator.text(
-      '${currencyFormat.format(updated.amountDue)} d',
+
+    bytes += await vietText(
+      generator,
+      "${currencyFormat.format(bill.collectedAmount)} đ",
       styles: const PosStyles(
         align: PosAlign.right,
         bold: true,
@@ -401,31 +363,40 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
     bytes += generator.hr();
 
-    // NHÂN VIÊN
+    final nvLabel = await encodeViet("NVBH:");
+    final nvName = await encodeViet(bill.collectedBy);
+
     bytes += generator.row([
-      PosColumn(text: 'NVBH:', width: 5),
+      PosColumn(textEncoded: nvLabel, width: 5),
       PosColumn(
-        text: p('Bùi Diệu Hương'),
+        textEncoded: nvName,
         width: 7,
         styles: const PosStyles(align: PosAlign.right),
       ),
     ]);
-    bytes += generator.row([
-      PosColumn(text: p('SĐT NV:'), width: 5),
-      PosColumn(
-        text: '0912345619',
-        width: 7,
-        styles: const PosStyles(align: PosAlign.right),
-      ),
-    ]);
+
+    if (bill.billPrintedAt != null) {
+      final printTimeLabel = await encodeViet("Giờ in:");
+
+      bytes += generator.row([
+        PosColumn(textEncoded: printTimeLabel, width: 5),
+        PosColumn(
+          text: dateFormat.format(bill.billPrintedAt!.toLocal()),
+          width: 7,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+    }
 
     bytes += generator.hr();
 
-    // FOOTER
-    bytes += generator.text(
-      p('Cảm ơn quý khách và hẹn gặp lại!'),
-      styles: const PosStyles(align: PosAlign.center, bold: true),
-    );
+    if (bill.adsText.isNotEmpty) {
+      bytes += await vietText(
+        generator,
+        bill.adsText,
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+    }
 
     bytes += generator.feed(3);
     bytes += generator.cut();
@@ -433,20 +404,22 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
     return bytes;
   }
 
-  // ================= KẾT NỐI MÁY IN =================
   Future<void> _ensureConnected() async {
-    // Nếu đang kết nối rồi thì không connect lại
+    if (selectedPrinter == null) {
+      throw Exception("Chưa chọn máy in. Vui lòng chọn máy in trước.");
+    }
+
     final bool alreadyConnected = await PrintBluetoothThermal.connectionStatus;
+
     if (alreadyConnected) return;
 
-    // Thử kết nối lần 1
     bool connected = await PrintBluetoothThermal.connect(
       macPrinterAddress: selectedPrinter!.macAdress,
     );
 
     if (!connected) {
-      // Chờ 500ms rồi thử lần 2
       await Future.delayed(const Duration(milliseconds: 500));
+
       connected = await PrintBluetoothThermal.connect(
         macPrinterAddress: selectedPrinter!.macAdress,
       );
@@ -454,125 +427,145 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
     if (!connected) {
       throw Exception(
-        'Không the ket noi may in "${selectedPrinter!.name}".\n'
-        'Kiem tra may in da bat va con pin.',
+        'Không thể kết nối máy in "${selectedPrinter!.name}".\n'
+        'Kiểm tra máy in đã bật và còn pin.',
       );
     }
 
-    // Chờ máy in sẵn sàng sau khi kết nối
     await Future.delayed(const Duration(milliseconds: 400));
   }
 
-  // ================= IN HÓA ĐƠN =================
   Future<void> _printBill(BillingRecordProvider provider) async {
     if (selectedPrinter == null) {
-      throw Exception("Chua chon may in. Vui long chon may in truoc.");
+      throw Exception("Chưa chọn máy in. Vui lòng chọn máy in trước.");
     }
+
     if (_isPrinting) return;
+
     setState(() => _isPrinting = true);
 
     try {
-      await provider.fetchRecordDetail(widget.recordId);
-      final record = provider.selectedRecord;
-      if (record == null) throw Exception("Khong tim thay hoa don.");
+      final authProvider = context.read<AuthProvider>();
+      final token = authProvider.token;
 
-      if (record.status == "CHUA_THU") {
-        await provider.printBill(recordId: widget.recordId);
+      if (token == null || token.isEmpty) {
+        throw Exception("Phiên đăng nhập đã hết hạn");
+      }
+
+      await provider.fetchRecordDetail(widget.recordId);
+
+      final record = provider.selectedRecord;
+
+      if (record == null) {
+        throw Exception("Không tìm thấy hóa đơn.");
+      }
+
+      if (record.collectionStatus == "CHUA_THU") {
+        await _recordPrintService.printBill(
+          recordId: widget.recordId,
+          collectedAmount: record.amountDue,
+          token: token,
+        );
+
         await provider.fetchRecordDetail(widget.recordId);
       }
 
-      final updated = provider.selectedRecord;
-      if (updated == null) throw Exception("Khong tai duoc du lieu hoa don.");
+      final BillDataModel billData = await _recordPrintService.getBillData(
+        recordId: widget.recordId,
+        token: token,
+      );
 
-      // Build bytes trước, kết nối sau — tránh timeout
-      final List<int> ticketBytes = await _buildTicketBytes(updated);
+      final List<int> ticketBytes = await _buildTicketBytes(billData);
 
       await _ensureConnected();
 
       final bool result = await PrintBluetoothThermal.writeBytes(ticketBytes);
-      if (!result) throw Exception("Gui lenh in that bai. Vui long thu lai.");
+
+      if (!result) {
+        throw Exception("Gửi lệnh in thất bại. Vui lòng thử lại.");
+      }
+
+      await provider.fetchRecordDetail(widget.recordId);
     } finally {
-      if (mounted) setState(() => _isPrinting = false);
+      if (mounted) {
+        setState(() => _isPrinting = false);
+      }
     }
   }
 
-  // ================= XEM TRƯỚC =================
-  void _openPreview(BillingRecordProvider provider) {
+  Future<void> _openPreview(BillingRecordProvider provider) async {
+    if (_isOpeningPreview) return;
+
     final record = provider.selectedRecord;
+
     if (record == null) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PrintPreviewPage(
-          record: record,
-          printerName: selectedPrinter?.name ?? "Chưa chọn máy in",
-          paperSizeLabel: paperSize == PaperSizeType.mm58 ? "58mm" : "80mm",
-          onConfirm: () async {
-            await _printBill(provider);
-            if (mounted) Navigator.pop(context);
-          },
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Phiên đăng nhập đã hết hạn"),
+          backgroundColor: Colors.red,
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    setState(() => _isOpeningPreview = true);
+
+    try {
+      final StoreConfigModel config = await _storeConfigService.getConfig(
+        token: token,
+      );
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PrintPreviewPage(
+            record: record,
+            storeConfig: config,
+            currentUser: authProvider.user,
+            printerName: selectedPrinter?.name ?? "Chưa chọn máy in",
+            paperSizeLabel: paperSize == PaperSizeType.mm58 ? "58mm" : "80mm",
+            onConfirm: () async {
+              await _printBill(provider);
+
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isOpeningPreview = false);
+      }
+    }
   }
 
-  // ================= WIDGET HELPERS =================
-  Widget _infoTile(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(title, style: const TextStyle(color: Colors.grey)),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _collectionStatusText(String status) {
+    if (status == "CHUA_THU") return "Chưa thu";
+    if (status == "DA_THANH_TOAN") return "Đã thanh toán";
+    return status;
   }
 
-  Widget _card({required String title, required List<Widget> children}) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
+  String _debtStatusText(String status) {
+    if (status == "CHUA_GACH_NO") return "Chưa gạch nợ";
+    if (status == "DA_GACH_NO") return "Đã gạch nợ";
+    return status;
   }
 
-  // ================= BUILD =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -590,158 +583,142 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          final bool isUnpaid = record.collectionStatus == "CHUA_THU";
+
           return SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 32),
             child: Column(
               children: [
-                _card(
+                RecordDetailCard(
                   title: "THÔNG TIN KHÁCH HÀNG",
                   children: [
-                    _infoTile("Tên khách hàng", record.customerName),
-                    _infoTile("Mã khách hàng", record.customerCode),
-                    _infoTile("Số điện thoại", record.phoneNumber),
-                    if (record.fullAddress != null)
-                      _infoTile("Địa chỉ", record.fullAddress!),
+                    InfoTile("Tên khách hàng", record.customerName),
+                    InfoTile("Mã khách hàng", record.customerCode),
+                    InfoTile("Số điện thoại", record.phoneNumber),
+                    if (record.fullAddress != null &&
+                        record.fullAddress!.isNotEmpty)
+                      InfoTile("Địa chỉ", record.fullAddress!),
                   ],
                 ),
-
-                _card(
+                RecordDetailCard(
                   title: "THÔNG TIN HÓA ĐƠN",
                   children: [
-                    _infoTile("Kỳ hoá đơn", record.billingPeriodName),
-                    _infoTile(
+                    InfoTile("Kỳ hoá đơn", record.billingPeriodName),
+                    InfoTile(
                       "Số tiền",
                       "${currencyFormat.format(record.amountDue)} đ",
                     ),
-                    _infoTile(
-                      "Trạng thái",
-                      record.status == "CHUA_THU" ? "Chưa thu" : "Đã thu",
+                    InfoTile(
+                      "Trạng thái thu",
+                      _collectionStatusText(record.collectionStatus),
+                    ),
+                    InfoTile(
+                      "Trạng thái gạch nợ",
+                      _debtStatusText(record.debtStatus),
                     ),
                   ],
                 ),
-
-                _card(
+                RecordDetailCard(
                   title: "CÀI ĐẶT MÁY IN",
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _selectPrinter,
-                            icon: const Icon(Icons.print, size: 18),
-                            label: Text(
-                              selectedPrinter?.name ?? "Chọn máy in",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: _selectPaperSize,
-                          icon: const Icon(Icons.straighten, size: 18),
-                          label: Text(
-                            paperSize == PaperSizeType.mm58 ? "58mm" : "80mm",
-                          ),
-                        ),
-                      ],
+                    PrinterSettingsCard(
+                      selectedPrinter: selectedPrinter,
+                      paperSize: paperSize,
+                      onSelectPrinter: _selectPrinter,
+                      onSelectPaperSize: _selectPaperSize,
                     ),
-                    if (selectedPrinter != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "${selectedPrinter!.name}  •  ${selectedPrinter!.macAdress}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
 
-                if (record.status == "CHUA_THU")
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.visibility_outlined),
-                            label: const Text("Xem trước bản in"),
-                            onPressed: () => _openPreview(provider),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryRed,
-                              foregroundColor: Colors.white,
-                            ),
-                            icon: _isPrinting
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.print),
-                            label: Text(
-                              _isPrinting ? "Đang in..." : "In hóa đơn",
-                            ),
-                            onPressed: _isPrinting
-                                ? null
-                                : () async {
-                                    try {
-                                      await _printBill(provider);
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "In hóa đơn thành công ✓",
-                                          ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(e.toString()),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  },
-                          ),
-                        ),
-                      ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      icon: _isOpeningPreview
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.visibility_outlined),
+                      label: Text(
+                        _isOpeningPreview
+                            ? "Đang mở bản xem trước..."
+                            : "Xem trước bản in",
+                      ),
+                      onPressed: _isOpeningPreview
+                          ? null
+                          : () async => await _openPreview(provider),
                     ),
                   ),
+                ),
 
-                if (record.status != "CHUA_THU")
+                const SizedBox(height: 12),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRed,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: _isPrinting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.print),
+                      label: Text(
+                        _isPrinting
+                            ? "Đang in..."
+                            : isUnpaid
+                            ? "Thu tiền và in phiếu"
+                            : "In lại phiếu thu",
+                      ),
+                      onPressed: _isPrinting
+                          ? null
+                          : () async {
+                              try {
+                                await _printBill(provider);
+
+                                if (!mounted) return;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isUnpaid
+                                          ? "In phiếu thu thành công ✓"
+                                          : "In lại phiếu thu thành công ✓",
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              } catch (e) {
+                                if (!mounted) return;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.toString()),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                  ),
+                ),
+
+                if (!isUnpaid)
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Container(
@@ -756,9 +733,11 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
                         children: [
                           Icon(Icons.check_circle, color: Colors.green),
                           SizedBox(width: 10),
-                          Text(
-                            "Hóa đơn này đã được thu tiền",
-                            style: TextStyle(color: Colors.green),
+                          Expanded(
+                            child: Text(
+                              "Hóa đơn này đã được thu tiền",
+                              style: TextStyle(color: Colors.green),
+                            ),
                           ),
                         ],
                       ),

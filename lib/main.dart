@@ -12,16 +12,21 @@ import 'package:billing_app/services/employee_service.dart';
 import 'package:billing_app/ui/login_page.dart';
 
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('vi_VN', null);
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const String baseUrl = "http://192.168.1.88:8080";
+  static const String baseUrl = "http://192.168.1.164:8080";
 
   @override
   Widget build(BuildContext context) {

@@ -76,7 +76,13 @@ class BillingRecordCard extends StatelessWidget {
 
             buildItem(Icons.receipt_long, "Thuê bao", record.subscriberNumber),
 
-            buildItem(Icons.location_on, "Địa chỉ", record.fullAddress ?? "-"),
+            buildItem(
+              Icons.location_on,
+              "Địa chỉ",
+              record.fullAddress?.isNotEmpty == true
+                  ? record.fullAddress!
+                  : "-",
+            ),
 
             buildItem(
               Icons.calendar_month,
@@ -84,8 +90,14 @@ class BillingRecordCard extends StatelessWidget {
               record.billingPeriodName,
             ),
 
-            if (record.assignedConsultantName != null)
-              buildItem(Icons.person, "TVV", record.assignedConsultantName!),
+            if (record.assignedConsultantName.isNotEmpty)
+              buildItem(Icons.person, "TVV", record.assignedConsultantName),
+
+            buildItem(
+              Icons.account_balance_wallet_outlined,
+              "Gạch nợ",
+              _getDebtStatusText(record),
+            ),
 
             const SizedBox(height: 16),
 
@@ -147,18 +159,35 @@ class BillingRecordCard extends StatelessWidget {
   }
 
   String _getStatusText(BillingRecordModel record) {
-    if (record.isPaid) {
-      return "Đã thanh toán";
+    switch (record.collectionStatus) {
+      case "DA_THANH_TOAN":
+        return "Đã thanh toán";
+      case "CHUA_THU":
+        return "Chưa thu";
+      default:
+        return record.collectionStatus;
     }
+  }
 
-    return "Chưa thu";
+  String _getDebtStatusText(BillingRecordModel record) {
+    switch (record.debtStatus) {
+      case "DA_GACH_NO":
+        return "Đã gạch nợ";
+      case "CHUA_GACH_NO":
+        return "Chưa gạch nợ";
+      default:
+        return record.debtStatus;
+    }
   }
 
   Color _getStatusColor(BillingRecordModel record) {
-    if (record.isPaid) {
-      return Colors.green;
+    switch (record.collectionStatus) {
+      case "DA_THANH_TOAN":
+        return Colors.green;
+      case "CHUA_THU":
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
-
-    return Colors.orange;
   }
 }

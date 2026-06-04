@@ -21,7 +21,7 @@ class BillingRecordService {
 
     final response = await http.get(uri, headers: headers);
 
-    final body = jsonDecode(response.body);
+    final body = jsonDecode(utf8.decode(response.bodyBytes));
 
     if (response.statusCode != 200) {
       throw Exception(body["message"] ?? "Không thể tải danh sách khách hàng");
@@ -38,7 +38,7 @@ class BillingRecordService {
       headers: headers,
     );
 
-    final body = jsonDecode(response.body);
+    final body = jsonDecode(utf8.decode(response.bodyBytes));
 
     if (response.statusCode != 200) {
       throw Exception(body["message"] ?? "Không thể lấy chi tiết khách hàng");
@@ -49,7 +49,7 @@ class BillingRecordService {
 
   Future<void> printBill({
     required int recordId,
-    required double collectedAmount,
+    required num collectedAmount,
   }) async {
     final response = await http.patch(
       Uri.parse("$baseUrl/records/$recordId/print-bill"),
@@ -58,7 +58,7 @@ class BillingRecordService {
     );
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
 
       throw Exception(body["message"] ?? "Không thể in bill");
     }
@@ -71,7 +71,7 @@ class BillingRecordService {
     );
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(response.body);
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
 
       throw Exception(body["message"] ?? "Không thể gạch nợ");
     }
