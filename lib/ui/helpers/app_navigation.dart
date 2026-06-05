@@ -31,21 +31,15 @@ class AppNavigation extends StatelessWidget {
           label: "Hóa đơn",
         ),
 
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.people),
-          label: "Khách hàng",
-        ),
-
+        // const BottomNavigationBarItem(
+        //   icon: Icon(Icons.people),
+        //   label: "Khách hàng",
+        // ),
         if (isManager)
           const BottomNavigationBarItem(
             icon: Icon(Icons.badge),
             label: "Nhân viên",
           ),
-
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: "Báo cáo",
-        ),
 
         const BottomNavigationBarItem(
           icon: Icon(Icons.person),

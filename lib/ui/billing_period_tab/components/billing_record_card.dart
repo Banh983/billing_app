@@ -6,16 +6,19 @@ import '../../helpers/format_helper.dart';
 class BillingRecordCard extends StatelessWidget {
   final BillingRecordModel record;
   final VoidCallback onTap;
+  final Future<void> Function()? onMarkDebt;
 
   const BillingRecordCard({
     super.key,
     required this.record,
     required this.onTap,
+    this.onMarkDebt,
   });
 
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(record);
+    final canMarkDebt = record.debtStatus == "CHUA_GACH_NO";
 
     return GestureDetector(
       onTap: onTap,
@@ -36,7 +39,6 @@ class BillingRecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER
             Row(
               children: [
                 Expanded(
@@ -71,11 +73,8 @@ class BillingRecordCard extends StatelessWidget {
             const SizedBox(height: 16),
 
             buildItem(Icons.badge_outlined, "Mã KH", record.customerCode),
-
             buildItem(Icons.phone, "SĐT", record.phoneNumber),
-
             buildItem(Icons.receipt_long, "Thuê bao", record.subscriberNumber),
-
             buildItem(
               Icons.location_on,
               "Địa chỉ",
@@ -83,7 +82,6 @@ class BillingRecordCard extends StatelessWidget {
                   ? record.fullAddress!
                   : "-",
             ),
-
             buildItem(
               Icons.calendar_month,
               "Kỳ cước",
@@ -113,6 +111,27 @@ class BillingRecordCard extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                if (canMarkDebt) ...[
+                  ElevatedButton.icon(
+                    onPressed: onMarkDebt,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text("Gạch nợ"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
                 ElevatedButton.icon(
                   onPressed: onTap,
                   icon: const Icon(Icons.visibility),
@@ -121,7 +140,7 @@ class BillingRecordCard extends StatelessWidget {
                     backgroundColor: statusColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
+                      horizontal: 14,
                       vertical: 14,
                     ),
                     shape: RoundedRectangleBorder(

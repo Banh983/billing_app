@@ -3,7 +3,6 @@ import 'package:billing_app/provider/auth_provider.dart';
 import 'package:billing_app/provider/employee_provider.dart';
 import 'package:billing_app/ui/helpers/format_helper.dart';
 import 'package:billing_app/ui/helpers/toast_utils.dart';
-import 'package:billing_app/ui/profile_tab/bluetooth_printer_page.dart';
 import 'package:billing_app/ui/profile_tab/components/action_card.dart';
 import 'package:billing_app/ui/profile_tab/components/info_tile.dart';
 import 'package:flutter/material.dart';
@@ -296,26 +295,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 16),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ActionCard(
-                  icon: Icons.print,
-                  iconColor: Colors.blue,
-                  title: "Máy in Bluetooth",
-                  subtitle: "Kết nối máy in bill cầm tay",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const BluetoothPrinterPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 28),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

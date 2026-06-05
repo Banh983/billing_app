@@ -41,11 +41,9 @@ class _HomePageState extends State<HomePage> {
 
       BillingPeriodPage(),
 
-      CustomerPage(),
+      // CustomerPage(),
 
       if (isManager) EmployeePage(),
-
-      const Center(child: Text("Báo cáo")),
 
       ProfilePage(
         user: currentUser,

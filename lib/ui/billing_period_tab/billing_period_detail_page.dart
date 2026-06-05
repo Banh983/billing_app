@@ -1,9 +1,11 @@
 import 'package:billing_app/ui/billing_period_tab/billing_record_detail_page.dart';
+import 'package:billing_app/ui/dialog/confirm_action_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/billing_period_model.dart';
 import '../../provider/billing_record_provider.dart';
+import '../helpers/toast_utils.dart';
 
 import 'components/billing_filter_card.dart';
 import 'components/billing_record_card.dart';
@@ -36,6 +38,54 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
     );
   }
 
+  Future<void> _markDebt(int recordId, String customerName) async {
+    try {
+      await context.read<BillingRecordProvider>().markDebt(recordId);
+
+      if (!mounted) return;
+
+      ToastUtils.success(
+        context,
+        message: "Đã gạch nợ khách hàng $customerName",
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ToastUtils.fromException(context, e);
+    }
+  }
+
+  void _showConfirmMarkDebtDialog({
+    required int recordId,
+    required String customerName,
+  }) {
+    showDialog(
+      context: context,
+      builder: (_) => ConfirmActionDialog(
+        title: "Xác nhận gạch nợ",
+        message: "",
+        confirmText: "Gạch nợ",
+        cancelText: "Hủy",
+        icon: Icons.account_balance_wallet_outlined,
+        iconColor: Colors.red,
+        confirmColor: Colors.red,
+        richMessage: TextSpan(
+          children: [
+            const TextSpan(text: "Bạn có chắc muốn gạch nợ khách hàng "),
+            TextSpan(
+              text: customerName,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: " không?"),
+          ],
+        ),
+        onConfirm: () async {
+          await _markDebt(recordId, customerName);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,11 +108,11 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
           Expanded(
             child: Consumer<BillingRecordProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading) {
+                if (provider.isLoading && provider.records.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (provider.error != null) {
+                if (provider.error != null && provider.records.isEmpty) {
                   return Center(child: Text(provider.error!));
                 }
 
@@ -96,6 +146,12 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
                               builder: (_) =>
                                   BillingRecordDetailPage(recordId: record.id),
                             ),
+                          );
+                        },
+                        onMarkDebt: () async {
+                          _showConfirmMarkDebtDialog(
+                            recordId: record.id,
+                            customerName: record.customerName,
                           );
                         },
                       );

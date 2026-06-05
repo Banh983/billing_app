@@ -146,19 +146,24 @@ class BillingRecordProvider extends ChangeNotifier {
   // =========================
   Future<void> markDebt(int recordId) async {
     try {
-      isLoading = true;
       error = null;
-      notifyListeners();
 
       await service.markDebt(recordId);
 
-      selectedRecord = await service.getRecordDetail(recordId);
+      final updatedRecord = await service.getRecordDetail(recordId);
+
+      selectedRecord = updatedRecord;
+
+      final index = records.indexWhere((e) => e.id == recordId);
+      if (index != -1) {
+        records[index] = updatedRecord;
+      }
+
+      notifyListeners();
     } catch (e) {
       error = e.toString();
-      rethrow;
-    } finally {
-      isLoading = false;
       notifyListeners();
+      rethrow;
     }
   }
 
