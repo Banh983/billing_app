@@ -30,11 +30,16 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
     });
   }
 
+  Future<void> _refreshRecords() async {
+    await context.read<BillingRecordProvider>().fetchRecordsByPeriod(
+      widget.period.id,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff5f5f5),
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.red,
@@ -44,13 +49,12 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-
       body: Column(
         children: [
-          /// FILTER
-          const BillingFilterCard(type: BillingFilterType.record),
-
-          /// LIST RECORDS
+          BillingFilterCard(
+            type: BillingFilterType.record,
+            periodId: widget.period.id,
+          ),
           Expanded(
             child: Consumer<BillingRecordProvider>(
               builder: (context, provider, child) {
@@ -63,20 +67,23 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
                 }
 
                 if (provider.records.isEmpty) {
-                  return const Center(
-                    child: Text("Chưa có hóa đơn trong kỳ này"),
+                  return RefreshIndicator(
+                    onRefresh: _refreshRecords,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 160),
+                        Center(child: Text("Không tìm thấy hóa đơn phù hợp")),
+                      ],
+                    ),
                   );
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () =>
-                      provider.fetchRecordsByPeriod(widget.period.id),
-
+                  onRefresh: _refreshRecords,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-
                     itemCount: provider.records.length,
-
                     itemBuilder: (context, index) {
                       final record = provider.records[index];
 

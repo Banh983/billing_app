@@ -15,19 +15,53 @@ class BillingRecordService {
   };
 
   Future<List<BillingRecordModel>> getRecordsByPeriod(int periodId) async {
+    return getRecords(periodId: periodId, page: 0, size: 100);
+  }
+
+  Future<List<BillingRecordModel>> getRecords({
+    int page = 0,
+    int size = 100,
+    int? periodId,
+    String? search,
+    String? province,
+    String? ward,
+    String? hamlet,
+    String? street,
+    String? collectionStatus,
+    String? debtStatus,
+    int? assignedUserId,
+    String? billPrintedDate,
+  }) async {
+    final queryParams = <String, String>{
+      "page": page.toString(),
+      "size": size.toString(),
+      if (periodId != null) "periodId": periodId.toString(),
+      if (_hasValue(search)) "search": search!.trim(),
+      if (_hasValue(province)) "province": province!.trim(),
+      if (_hasValue(ward)) "ward": ward!.trim(),
+      if (_hasValue(hamlet)) "hamlet": hamlet!.trim(),
+      if (_hasValue(street)) "street": street!.trim(),
+      if (_hasValue(collectionStatus))
+        "collectionStatus": collectionStatus!.trim(),
+      if (_hasValue(debtStatus)) "debtStatus": debtStatus!.trim(),
+      if (assignedUserId != null) "assignedUserId": assignedUserId.toString(),
+      if (_hasValue(billPrintedDate))
+        "billPrintedDate": billPrintedDate!.trim(),
+    };
+
     final uri = Uri.parse(
-      "$baseUrl/records?periodId=$periodId&page=0&size=100",
-    );
+      "$baseUrl/records",
+    ).replace(queryParameters: queryParams);
 
     final response = await http.get(uri, headers: headers);
-
-    final body = jsonDecode(utf8.decode(response.bodyBytes));
+    final bodyText = utf8.decode(response.bodyBytes);
+    final body = bodyText.isNotEmpty ? jsonDecode(bodyText) : {};
 
     if (response.statusCode != 200) {
       throw Exception(body["message"] ?? "Không thể tải danh sách khách hàng");
     }
 
-    final List<dynamic> content = body["data"]?["content"] ?? [];
+    final List<dynamic> content = _extractList(body);
 
     return content.map((e) => BillingRecordModel.fromJson(e)).toList();
   }
@@ -38,13 +72,14 @@ class BillingRecordService {
       headers: headers,
     );
 
-    final body = jsonDecode(utf8.decode(response.bodyBytes));
+    final bodyText = utf8.decode(response.bodyBytes);
+    final body = bodyText.isNotEmpty ? jsonDecode(bodyText) : {};
 
     if (response.statusCode != 200) {
       throw Exception(body["message"] ?? "Không thể lấy chi tiết khách hàng");
     }
 
-    return BillingRecordModel.fromJson(body["data"]);
+    return BillingRecordModel.fromJson(body["data"] ?? body);
   }
 
   Future<void> printBill({
@@ -58,8 +93,8 @@ class BillingRecordService {
     );
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(utf8.decode(response.bodyBytes));
-
+      final bodyText = utf8.decode(response.bodyBytes);
+      final body = bodyText.isNotEmpty ? jsonDecode(bodyText) : {};
       throw Exception(body["message"] ?? "Không thể in bill");
     }
   }
@@ -71,9 +106,33 @@ class BillingRecordService {
     );
 
     if (response.statusCode != 200) {
-      final body = jsonDecode(utf8.decode(response.bodyBytes));
-
+      final bodyText = utf8.decode(response.bodyBytes);
+      final body = bodyText.isNotEmpty ? jsonDecode(bodyText) : {};
       throw Exception(body["message"] ?? "Không thể gạch nợ");
     }
+  }
+
+  bool _hasValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
+  }
+
+  List<dynamic> _extractList(dynamic body) {
+    if (body is Map<String, dynamic>) {
+      final data = body["data"];
+
+      if (data is Map<String, dynamic> && data["content"] is List) {
+        return data["content"];
+      }
+
+      if (data is List) {
+        return data;
+      }
+
+      if (body["content"] is List) {
+        return body["content"];
+      }
+    }
+
+    return [];
   }
 }

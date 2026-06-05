@@ -45,16 +45,10 @@ class EmployeeService {
   Future<Employee> create(Employee emp, String password) async {
     final body = {
       "fullName": emp.fullName.trim(),
-
-  
       "username": emp.username.trim(),
-
       "password": password.trim(),
-
       "role": emp.role,
-
       "status": emp.status ?? "ACTIVE",
-
       "phone": emp.phone?.trim(),
     }..removeWhere((k, v) => v == null);
 
@@ -64,6 +58,7 @@ class EmployeeService {
       body: jsonEncode(body),
     );
 
+    print("CREATE REQUEST: ${jsonEncode(body)}");
     print("CREATE STATUS: ${res.statusCode}");
     print("CREATE BODY: ${res.body}");
 
@@ -83,11 +78,8 @@ class EmployeeService {
   Future<Employee> update(int id, Employee emp) async {
     final body = {
       "fullName": emp.fullName.trim(),
-
       "username": emp.username.trim(),
-
       "role": emp.role,
-
       "phone": emp.phone?.trim(),
     }..removeWhere((k, v) => v == null);
 
@@ -97,9 +89,9 @@ class EmployeeService {
       body: jsonEncode(body),
     );
 
+    print("UPDATE REQUEST: ${jsonEncode(body)}");
     print("UPDATE STATUS: ${res.statusCode}");
     print("UPDATE BODY: ${res.body}");
-    print("UPDATE REQUEST: ${jsonEncode(body)}");
 
     final json = jsonDecode(res.body);
 
@@ -117,14 +109,15 @@ class EmployeeService {
   Future<ApiResult<void>> setStatus(int id, String status) async {
     try {
       final res = await http.patch(
-        Uri.parse("$baseUrl/users/$id/status?status=$status"),
+        Uri.parse("$baseUrl/users/$id/status?status=${status.toUpperCase()}"),
         headers: headers,
       );
 
       final body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
 
-      print("STATUS CODE: ${res.statusCode}");
-      print("STATUS BODY: ${res.body}");
+      print("SET STATUS REQUEST: ${status.toUpperCase()}");
+      print("SET STATUS CODE: ${res.statusCode}");
+      print("SET STATUS BODY: ${res.body}");
 
       if (res.statusCode < 200 || res.statusCode >= 300) {
         return ApiResult(
@@ -135,13 +128,12 @@ class EmployeeService {
 
       return ApiResult(
         success: true,
-        message: body?["message"] ?? "Cập nhật thành công",
+        message: body?["message"] ?? "Cập nhật trạng thái thành công",
       );
     } catch (e) {
       return ApiResult(success: false, message: e.toString());
     }
   }
-
   // =========================
   // DELETE
   // =========================

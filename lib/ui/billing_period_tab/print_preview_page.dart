@@ -1,5 +1,16 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:billing_app/ui/billing_period_tab/components/preview_action_buttons.dart';
+import 'package:billing_app/ui/billing_period_tab/components/receipt_preview_card.dart';
+import 'package:billing_app/ui/helpers/format_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/rendering.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../models/auth_model.dart';
 import '../../models/billing_record_model.dart';
@@ -11,7 +22,9 @@ class PrintPreviewPage extends StatefulWidget {
   final AuthModel? currentUser;
   final String printerName;
   final String paperSizeLabel;
-  final Future<void> Function() onConfirm;
+  final bool hasSelectedPrinter;
+  final Future<String?> Function() onSelectPrinter;
+  final Future<void> Function(Uint8List receiptImageBytes) onConfirm;
 
   const PrintPreviewPage({
     super.key,
@@ -20,6 +33,8 @@ class PrintPreviewPage extends StatefulWidget {
     required this.currentUser,
     required this.printerName,
     required this.paperSizeLabel,
+    required this.hasSelectedPrinter,
+    required this.onSelectPrinter,
     required this.onConfirm,
   });
 
@@ -28,19 +43,101 @@ class PrintPreviewPage extends StatefulWidget {
 }
 
 class _PrintPreviewPageState extends State<PrintPreviewPage> {
-  bool _isPrinting = false;
+  final GlobalKey _receiptKey = GlobalKey();
 
-  String formatMoney(dynamic value) {
-    return NumberFormat("#,###", "vi_VN").format(value ?? 0);
+  bool _isPrinting = false;
+  bool _isSharing = false;
+  bool _isSaving = false;
+  bool _isSelectingPrinter = false;
+
+  String? _actualPrintTime;
+  late String _printerName;
+  late bool _hasSelectedPrinter;
+
+  @override
+  void initState() {
+    super.initState();
+    _printerName = widget.printerName;
+    _hasSelectedPrinter = widget.hasSelectedPrinter;
   }
 
-  Future<void> _handleConfirm() async {
+  Future<void> _handleSelectPrinter() async {
+    if (_isSelectingPrinter) return;
+
+    setState(() => _isSelectingPrinter = true);
+
+    try {
+      final selectedName = await widget.onSelectPrinter();
+
+      if (!mounted) return;
+
+      if (selectedName != null && selectedName.trim().isNotEmpty) {
+        setState(() {
+          _printerName = selectedName;
+          _hasSelectedPrinter = true;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSelectingPrinter = false);
+      }
+    }
+  }
+
+  Future<Uint8List> _captureReceiptImage() async {
+    await WidgetsBinding.instance.endOfFrame;
+
+    final receiptContext = _receiptKey.currentContext;
+
+    if (receiptContext == null) {
+      throw Exception("Không thể lấy nội dung phiếu thu");
+    }
+
+    final boundary = receiptContext.findRenderObject();
+
+    if (boundary == null || boundary is! RenderRepaintBoundary) {
+      throw Exception("Không thể render phiếu thu thành ảnh");
+    }
+
+    final image = await boundary.toImage(pixelRatio: 3.5);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    if (byteData == null) {
+      throw Exception("Không thể chuyển phiếu thu thành ảnh");
+    }
+
+    return byteData.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _captureReceiptImageWithCurrentTime() async {
+    setState(() {
+      _actualPrintTime = FormatHelper.formatBillPrintDateTime(DateTime.now());
+    });
+
+    await WidgetsBinding.instance.endOfFrame;
+
+    final imageBytes = await _captureReceiptImage();
+
+    if (mounted) {
+      setState(() => _actualPrintTime = null);
+    }
+
+    return imageBytes;
+  }
+
+  Future<void> _handlePrint() async {
     if (_isPrinting) return;
+
+    if (!_hasSelectedPrinter) {
+      await _handleSelectPrinter();
+      if (!_hasSelectedPrinter) return;
+    }
 
     setState(() => _isPrinting = true);
 
     try {
-      await widget.onConfirm();
+      final imageBytes = await _captureReceiptImageWithCurrentTime();
+      await widget.onConfirm(imageBytes);
     } finally {
       if (mounted) {
         setState(() => _isPrinting = false);
@@ -48,16 +145,90 @@ class _PrintPreviewPageState extends State<PrintPreviewPage> {
     }
   }
 
+  Future<void> _handleShareImage() async {
+    if (_isSharing) return;
+
+    setState(() => _isSharing = true);
+
+    try {
+      final imageBytes = await _captureReceiptImageWithCurrentTime();
+
+      final tempDir = await getTemporaryDirectory();
+      final fileName =
+          "phieu_thu_${widget.record.customerCode}_${DateTime.now().millisecondsSinceEpoch}.png";
+
+      final file = File("${tempDir.path}/$fileName");
+      await file.writeAsBytes(imageBytes);
+
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: "Phiếu thu cước viễn thông");
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Không thể chia sẻ ảnh: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
+  }
+
+  Future<void> _handleSaveImage() async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      if (Platform.isAndroid) {
+        await Permission.photos.request();
+        await Permission.storage.request();
+      }
+
+      final imageBytes = await _captureReceiptImageWithCurrentTime();
+
+      await ImageGallerySaverPlus.saveImage(
+        imageBytes,
+        quality: 100,
+        name:
+            "phieu_thu_${widget.record.customerCode}_${DateTime.now().millisecondsSinceEpoch}",
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đã lưu ảnh phiếu thu vào thư viện"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Không thể lưu ảnh: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final record = widget.record;
-    final user = widget.currentUser;
-    final store = widget.storeConfig;
+    final paperWidth = widget.paperSizeLabel == "80mm" ? 430.0 : 384.0;
 
-    final billCode =
-        "${record.customerCode} - ${DateFormat("dd/MM/yyyy").format(DateTime.now())}";
-
-    final paperWidth = widget.paperSizeLabel == "80mm" ? 430.0 : 330.0;
+    final displayDateTime =
+        _actualPrintTime ?? FormatHelper.formatBillPrintDate(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.grey.shade200,
@@ -67,117 +238,34 @@ class _PrintPreviewPageState extends State<PrintPreviewPage> {
         child: Center(
           child: Column(
             children: [
-              _printerInfo(paperWidth),
-
-              const SizedBox(height: 12),
-
-              Container(
+              _PrinterInfo(
                 width: paperWidth,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black26),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: DefaultTextStyle(
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 13,
-                    height: 1.3,
-                    fontFamily: "monospace",
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _storeBox(store),
-
-                      const SizedBox(height: 12),
-                      const Divider(thickness: 1.5, color: Colors.black),
-
-                      const SizedBox(height: 8),
-
-                      _center(
-                        "PHIẾU THU CƯỚC VIỄN THÔNG",
-                        fontSize: 16,
-                        bold: true,
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      _center(billCode),
-
-                      const SizedBox(height: 12),
-
-                      _customerBox(record),
-
-                      const SizedBox(height: 12),
-                      const Divider(thickness: 1.5, color: Colors.black),
-
-                      _table(record),
-
-                      const SizedBox(height: 8),
-                      _dash(),
-
-                      _amountRow(
-                        "TỔNG CỘNG",
-                        "${formatMoney(record.amountDue)} đ",
-                        fontSize: 16,
-                        bold: true,
-                      ),
-
-                      const SizedBox(height: 8),
-                      const Divider(thickness: 1.5, color: Colors.black),
-
-                      _amountRow(
-                        "Số tiền thanh toán:",
-                        "${formatMoney(record.amountDue)} đ",
-                        fontSize: 15,
-                        bold: true,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _noteBox(
-                        userName: user?.fullName ?? "",
-                        userPhone: user?.phone ?? "",
-                        adsText: store.adsText,
-                      ),
-
-                      const SizedBox(height: 8),
-                      _dash(),
-
-                      if (store.adsText.isNotEmpty)
-                        _center(store.adsText, fontSize: 15, bold: true),
-                    ],
-                  ),
+                printerName: _printerName,
+                paperSizeLabel: widget.paperSizeLabel,
+                hasSelectedPrinter: _hasSelectedPrinter,
+                isSelectingPrinter: _isSelectingPrinter,
+                onSelectPrinter: _handleSelectPrinter,
+              ),
+              const SizedBox(height: 12),
+              RepaintBoundary(
+                key: _receiptKey,
+                child: ReceiptPreviewCard(
+                  width: paperWidth,
+                  record: widget.record,
+                  storeConfig: widget.storeConfig,
+                  currentUser: widget.currentUser,
+                  displayDateTime: displayDateTime,
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              SizedBox(
+              PreviewActionButtons(
                 width: paperWidth,
-                height: 50,
-                child: ElevatedButton.icon(
-                  icon: _isPrinting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.print),
-                  onPressed: _isPrinting ? null : _handleConfirm,
-                  label: Text(_isPrinting ? "Đang in..." : "IN PHIẾU THU"),
-                ),
+                isPrinting: _isPrinting,
+                isSharing: _isSharing,
+                isSaving: _isSaving,
+                onPrint: _handlePrint,
+                onShare: _handleShareImage,
+                onSave: _handleSaveImage,
               ),
             ],
           ),
@@ -185,267 +273,87 @@ class _PrintPreviewPageState extends State<PrintPreviewPage> {
       ),
     );
   }
+}
 
-  Widget _printerInfo(double width) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blueGrey.shade100),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.print, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              "Máy in: ${widget.printerName}",
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Text(
-            widget.paperSizeLabel,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
+class _PrinterInfo extends StatelessWidget {
+  final double width;
+  final String printerName;
+  final String paperSizeLabel;
+  final bool hasSelectedPrinter;
+  final bool isSelectingPrinter;
+  final VoidCallback onSelectPrinter;
 
-  Widget _storeBox(StoreConfigModel store) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black26, style: BorderStyle.solid),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _center(
-            store.storeName.isNotEmpty ? store.storeName : "PHIẾU THU",
-            fontSize: 20,
-            bold: true,
-          ),
-          if (store.hotline.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _iconLine(Icons.phone, store.hotline),
-          ],
-          if (store.address.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _iconLine(Icons.location_on_outlined, store.address),
-          ],
-        ],
-      ),
-    );
-  }
+  const _PrinterInfo({
+    required this.width,
+    required this.printerName,
+    required this.paperSizeLabel,
+    required this.hasSelectedPrinter,
+    required this.isSelectingPrinter,
+    required this.onSelectPrinter,
+  });
 
-  Widget _customerBox(BillingRecordModel record) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black26, style: BorderStyle.solid),
-      ),
-      child: Column(
-        children: [
-          _line("Khách hàng:", record.customerName),
-          _line("Mã KH:", record.customerCode),
-          _line("SĐT:", record.phoneNumber),
-          if (record.fullAddress != null && record.fullAddress!.isNotEmpty)
-            _line("Địa chỉ:", record.fullAddress!),
-        ],
-      ),
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final Color bgColor = hasSelectedPrinter
+        ? Colors.green.shade50
+        : Colors.orange.shade50;
 
-  Widget _table(BillingRecordModel record) {
-    return Column(
-      children: [
-        Row(
-          children: const [
-            Expanded(
-              flex: 1,
-              child: Text("STT", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            Expanded(
-              flex: 4,
-              child: Text(
-                "NỘI DUNG",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Text(
-                "SL",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                "THÀNH TIỀN",
-                textAlign: TextAlign.right,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+    final Color borderColor = hasSelectedPrinter
+        ? Colors.green.shade200
+        : Colors.orange.shade200;
+
+    final Color iconColor = hasSelectedPrinter
+        ? Colors.green
+        : Colors.orange.shade800;
+
+    return InkWell(
+      onTap: isSelectingPrinter ? null : onSelectPrinter,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
         ),
-
-        const SizedBox(height: 8),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            const Expanded(flex: 1, child: Text("1")),
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Cước viễn thông",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Kỳ hoá đơn: ${record.billingPeriodName}",
-                    style: const TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ],
+            if (isSelectingPrinter)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: iconColor,
+                ),
+              )
+            else
+              Icon(
+                hasSelectedPrinter
+                    ? Icons.print_rounded
+                    : Icons.bluetooth_searching_rounded,
+                size: 20,
+                color: iconColor,
               ),
-            ),
-            const Expanded(
-              flex: 1,
-              child: Text("1", textAlign: TextAlign.center),
-            ),
+            const SizedBox(width: 8),
             Expanded(
-              flex: 2,
               child: Text(
-                formatMoney(record.amountDue),
-                textAlign: TextAlign.right,
+                hasSelectedPrinter
+                    ? "Máy in: $printerName"
+                    : "Chưa chọn máy in - bấm để chọn",
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _noteBox({
-    required String userName,
-    required String userPhone,
-    required String adsText,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(border: Border.all(color: Colors.black26)),
-      child: Column(
-        children: [
-          _rightLine("Ghi chú:", "N1 TT"),
-          _rightLine("NVBH:", userName),
-          if (userPhone.isNotEmpty) _rightLine("SĐT nhân viên:", userPhone),
-          if (adsText.isNotEmpty) _rightLine("Ghi chú cửa hàng:", "ADS"),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconLine(IconData icon, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-      ],
-    );
-  }
-
-  Widget _center(String text, {double fontSize = 13, bool bold = false}) {
-    return SizedBox(
-      width: double.infinity,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
-  }
-
-  Widget _dash() {
-    return const Text(
-      "----------------------------------------",
-      maxLines: 1,
-      overflow: TextOverflow.clip,
-    );
-  }
-
-  Widget _line(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 92, child: Text(label)),
-          Expanded(
-            child: Text(
-              value,
+            const SizedBox(width: 8),
+            Text(
+              paperSizeLabel,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _rightLine(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value, textAlign: TextAlign.right)),
-        ],
-      ),
-    );
-  }
-
-  Widget _amountRow(
-    String label,
-    String amount, {
-    double fontSize = 13,
-    bool bold = false,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          ],
         ),
-        Text(
-          amount,
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

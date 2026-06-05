@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/billing_period_model.dart';
 import '../../provider/billing_period_provider.dart';
 import 'billing_period_detail_page.dart';
 
@@ -16,6 +17,9 @@ class BillingPeriodPage extends StatefulWidget {
 }
 
 class _BillingPeriodPageState extends State<BillingPeriodPage> {
+  String? selectedYear;
+  String? selectedStatus;
+
   @override
   void initState() {
     super.initState();
@@ -23,6 +27,18 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
     Future.microtask(() {
       context.read<BillingPeriodProvider>().fetchBillingPeriods();
     });
+  }
+
+  List<BillingPeriodModel> _filterPeriods(List<BillingPeriodModel> periods) {
+    return periods.where((period) {
+      final matchYear =
+          selectedYear == null || period.year.toString() == selectedYear;
+
+      final matchStatus =
+          selectedStatus == null || period.status == selectedStatus;
+
+      return matchYear && matchStatus;
+    }).toList();
   }
 
   Future<void> _closePeriod(
@@ -73,7 +89,6 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff5f5f5),
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.red,
@@ -83,10 +98,23 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-
       body: Column(
         children: [
-          const BillingFilterCard(type: BillingFilterType.period),
+          BillingFilterCard(
+            type: BillingFilterType.period,
+            onPeriodFilter: ({year, status}) {
+              setState(() {
+                selectedYear = year;
+                selectedStatus = status;
+              });
+            },
+            onPeriodReset: () {
+              setState(() {
+                selectedYear = null;
+                selectedStatus = null;
+              });
+            },
+          ),
 
           Expanded(
             child: Consumer<BillingPeriodProvider>(
@@ -99,24 +127,22 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
                   return Center(child: Text(provider.error!));
                 }
 
-                if (provider.periods.isEmpty) {
+                final filteredPeriods = _filterPeriods(provider.periods);
+
+                if (filteredPeriods.isEmpty) {
                   return const BillingEmptyState();
                 }
 
                 return RefreshIndicator(
                   onRefresh: provider.refresh,
-
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-
-                    itemCount: provider.periods.length,
-
+                    itemCount: filteredPeriods.length,
                     itemBuilder: (context, index) {
-                      final period = provider.periods[index];
+                      final period = filteredPeriods[index];
 
                       return BillingPeriodCard(
                         billingPeriod: period,
-
                         onTap: () {
                           Navigator.push(
                             context,
@@ -126,7 +152,6 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
                             ),
                           );
                         },
-
                         onClose: () {
                           _closePeriod(context, provider, period.id);
                         },

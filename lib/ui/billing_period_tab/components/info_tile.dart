@@ -9,18 +9,20 @@ class InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 110,
-            child: Text(title, style: const TextStyle(color: Colors.grey)),
+            width: 150,
+            child: Text(
+              title,
+              style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
+            ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
         ],

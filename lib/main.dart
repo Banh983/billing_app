@@ -3,14 +3,17 @@ import 'package:billing_app/provider/auth_provider.dart';
 import 'package:billing_app/provider/billing_period_provider.dart';
 import 'package:billing_app/provider/billing_record_provider.dart';
 import 'package:billing_app/provider/customer_provider.dart';
+import 'package:billing_app/provider/dashboard_provider.dart';
 import 'package:billing_app/provider/employee_provider.dart';
 
 import 'package:billing_app/services/billing_period_service.dart';
 import 'package:billing_app/services/billing_record_service.dart';
 import 'package:billing_app/services/customer_service.dart';
+import 'package:billing_app/services/dashboard_service.dart';
 import 'package:billing_app/services/employee_service.dart';
 
 import 'package:billing_app/ui/login_page.dart';
+import 'package:device_preview/device_preview.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -124,11 +127,18 @@ class MyApp extends StatelessWidget {
             );
           },
         ),
+
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(DashboardService()),
+        ),
       ],
 
-      child: const MaterialApp(
+      child: MaterialApp(
+        useInheritedMediaQuery: true,
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
         debugShowCheckedModeBanner: false,
-        home: LoginPage(),
+        home: const LoginPage(),
       ),
     );
   }

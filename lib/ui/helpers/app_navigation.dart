@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 class AppNavigation extends StatelessWidget {
   final int currentIndex;
+  final bool isManager;
   final Function(int) onTap;
 
   const AppNavigation({
     super.key,
     required this.currentIndex,
+    required this.isManager,
     required this.onTap,
   });
 
@@ -15,20 +17,40 @@ class AppNavigation extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFFE53935),
+      unselectedItemColor: Colors.grey,
       onTap: onTap,
-      items: const [
-        BottomNavigationBarItem(
+      items: [
+        const BottomNavigationBarItem(
           icon: Icon(Icons.dashboard),
           label: "Trang chủ",
         ),
-        BottomNavigationBarItem(
+
+        const BottomNavigationBarItem(
           icon: Icon(Icons.receipt_long),
           label: "Hóa đơn",
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.people), label: "Khách hàng"),
-        BottomNavigationBarItem(icon: Icon(Icons.badge), label: "Nhân viên"),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Báo cáo"),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Cá nhân"),
+
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.people),
+          label: "Khách hàng",
+        ),
+
+        if (isManager)
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.badge),
+            label: "Nhân viên",
+          ),
+
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.bar_chart),
+          label: "Báo cáo",
+        ),
+
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: "Cá nhân",
+        ),
       ],
     );
   }

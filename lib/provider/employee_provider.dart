@@ -80,12 +80,10 @@ class EmployeeProvider extends ChangeNotifier {
       return null;
     }
 
-    // chỉ được nhập số
     if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
       return ApiResult.error(message: "Số điện thoại chỉ được chứa chữ số");
     }
 
-    // đúng 10 số
     if (value.length != 10) {
       return ApiResult.error(message: "Số điện thoại phải gồm đúng 10 số");
     }
@@ -103,7 +101,6 @@ class EmployeeProvider extends ChangeNotifier {
     _resetActionState();
 
     try {
-      // validate phone frontend
       final phoneError = _validatePhone(emp.phone);
 
       if (phoneError != null) {
@@ -112,12 +109,10 @@ class EmployeeProvider extends ChangeNotifier {
         return phoneError;
       }
 
-      // call api
       final newEmp = await service.create(emp, password);
 
       employees.insert(0, newEmp);
 
-      // custom success message
       const msg = "Cập nhật thông tin thành công";
 
       actionMessage = msg;
@@ -138,38 +133,44 @@ class EmployeeProvider extends ChangeNotifier {
   // UPDATE
   // =========================
 
-  Future<ApiResult<void>> updateEmployee(int id, Employee emp) async {
+  Future<ApiResult<Employee>> updateEmployee(int id, Employee emp) async {
     _setActionLoading(true);
 
     _resetActionState();
 
     try {
-      // validate phone frontend
       final phoneError = _validatePhone(emp.phone);
 
       if (phoneError != null) {
         error = phoneError.message;
 
-        return phoneError;
+        return ApiResult.error(message: phoneError.message);
       }
 
-      // call api
       final updated = await service.update(id, emp);
 
-      final index = employees.indexWhere((e) => e.id == id);
+      final statusResult = await service.setStatus(id, emp.status ?? "ACTIVE");
 
-      if (index != -1) {
-        employees[index] = updated;
-      } else {
-        await fetchEmployees();
+      if (!statusResult.success) {
+        error = statusResult.message;
+
+        return ApiResult.error(
+          message: statusResult.message ?? "Cập nhật trạng thái thất bại",
+          statusCode: statusResult.statusCode,
+        );
       }
 
-      // custom success message
+      await fetchEmployees();
+
+      final updatedWithStatus = updated.copyWith(
+        status: emp.status ?? updated.status,
+      );
+
       const msg = "Cập nhật thông tin thành công";
 
       actionMessage = msg;
 
-      return ApiResult.success(message: msg);
+      return ApiResult.success(data: updatedWithStatus, message: msg);
     } catch (e) {
       final msg = _parseError(e);
 
@@ -180,7 +181,6 @@ class EmployeeProvider extends ChangeNotifier {
       _setActionLoading(false);
     }
   }
-
   // =========================
   // DELETE
   // =========================
@@ -234,7 +234,6 @@ class EmployeeProvider extends ChangeNotifier {
 
       await fetchEmployees();
 
-      // custom success message
       const msg = "Cập nhật thông tin thành công";
 
       actionMessage = msg;

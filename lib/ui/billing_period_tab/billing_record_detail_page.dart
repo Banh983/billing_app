@@ -1,45 +1,24 @@
 import 'dart:typed_data';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:billing_app/models/store_config_model.dart';
 import 'package:billing_app/services/store_config_service.dart';
 import 'package:billing_app/ui/billing_period_tab/components/printer_settings_card.dart';
 import 'package:billing_app/ui/billing_period_tab/components/record_detail_card.dart';
 import 'package:billing_app/ui/billing_period_tab/print_preview_page.dart';
-import 'package:charset_converter/charset_converter.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
-import '../../models/bill_data_model.dart';
 import '../../provider/auth_provider.dart';
 import '../../provider/billing_record_provider.dart';
 import '../../services/record_print_service.dart';
 import 'components/info_tile.dart';
-
-Future<Uint8List> encodeViet(String s) async {
-  try {
-    return await CharsetConverter.encode("windows-1258", s);
-  } catch (_) {
-    return Uint8List.fromList(s.codeUnits);
-  }
-}
-
-List<int> selectCodePage1258() => [0x1B, 0x74, 0x1E];
-
-Future<List<int>> vietText(
-  Generator gen,
-  String text, {
-  PosStyles styles = const PosStyles(),
-  int? linesAfter,
-}) async {
-  final encoded = await encodeViet(text);
-
-  return gen.textEncoded(encoded, styles: styles, linesAfter: linesAfter ?? 0);
-}
 
 class BillingRecordDetailPage extends StatefulWidget {
   final int recordId;
@@ -51,9 +30,9 @@ class BillingRecordDetailPage extends StatefulWidget {
       _BillingRecordDetailPageState();
 }
 
-class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
+class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
+    with WidgetsBindingObserver {
   final currencyFormat = NumberFormat("#,###", "vi_VN");
-  final dateFormat = DateFormat("dd/MM/yyyy HH:mm", "vi_VN");
 
   final RecordPrintService _recordPrintService = RecordPrintService();
   final StoreConfigService _storeConfigService = StoreConfigService();
@@ -63,43 +42,126 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
   bool _isPrinting = false;
   bool _isOpeningPreview = false;
+  bool _isWaitingBluetooth = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     Future.microtask(() {
       context.read<BillingRecordProvider>().fetchRecordDetail(widget.recordId);
     });
   }
 
-  Future<void> _selectPrinter() async {
-    final bluetoothConnect = await Permission.bluetoothConnect.request();
-    final bluetoothScan = await Permission.bluetoothScan.request();
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    if (!bluetoothConnect.isGranted || !bluetoothScan.isGranted) {
-      if (!mounted) return;
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state != AppLifecycleState.resumed) return;
+    if (!_isWaitingBluetooth) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Bạn cần cho phép quyền Bluetooth để chọn máy in"),
-        ),
-      );
-      return;
-    }
+    _isWaitingBluetooth = false;
 
     final bool isEnabled = await PrintBluetoothThermal.bluetoothEnabled;
 
-    if (!isEnabled) {
-      if (!mounted) return;
+    if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Bluetooth chưa được bật trên điện thoại"),
-        ),
-      );
-      return;
+    if (isEnabled) {
+      await _selectPrinter();
     }
+  }
+
+  Future<bool> _requestBluetoothPermissions() async {
+    final bluetoothConnect = await Permission.bluetoothConnect.request();
+    final bluetoothScan = await Permission.bluetoothScan.request();
+
+    if (bluetoothConnect.isGranted && bluetoothScan.isGranted) {
+      return true;
+    }
+
+    if (!mounted) return false;
+
+    final bool openSettings =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Cần quyền Bluetooth"),
+            content: const Text(
+              "Ứng dụng cần quyền Bluetooth để tìm và kết nối máy in. "
+              "Vui lòng cấp quyền để tiếp tục.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Để sau"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text("Mở cài đặt"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (openSettings) {
+      await openAppSettings();
+    }
+
+    return false;
+  }
+
+  Future<bool> _ensureBluetoothEnabled() async {
+    final bool isEnabled = await PrintBluetoothThermal.bluetoothEnabled;
+
+    if (isEnabled) return true;
+
+    if (!mounted) return false;
+
+    final bool openBluetoothSettings =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Bật Bluetooth"),
+            content: const Text(
+              "Bluetooth đang tắt. Vui lòng bật Bluetooth để chọn và kết nối máy in.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Hủy"),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.bluetooth),
+                label: const Text("Bật Bluetooth"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!openBluetoothSettings) return false;
+
+    _isWaitingBluetooth = true;
+    await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
+
+    return false;
+  }
+
+  Future<void> _selectPrinter() async {
+    final hasPermission = await _requestBluetoothPermissions();
+
+    if (!hasPermission) return;
+
+    final isEnabled = await _ensureBluetoothEnabled();
+
+    if (!isEnabled) return;
 
     final List<BluetoothInfo> devices =
         await PrintBluetoothThermal.pairedBluetooths;
@@ -204,7 +266,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
     }
   }
 
-  Future<List<int>> _buildTicketBytes(BillDataModel bill) async {
+  Future<List<int>> _buildImageTicketBytes(Uint8List receiptImageBytes) async {
     final profile = await CapabilityProfile.load();
 
     final paper = paperSize == PaperSizeType.mm58
@@ -213,191 +275,24 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
 
     final generator = Generator(paper, profile);
 
+    final decodedImage = img.decodeImage(receiptImageBytes);
+
+    if (decodedImage == null) {
+      throw Exception("Không thể đọc ảnh phiếu thu để in");
+    }
+
+    final int targetWidth = paperSize == PaperSizeType.mm58 ? 384 : 576;
+
+    final resizedImage = img.copyResize(
+      decodedImage,
+      width: targetWidth,
+      interpolation: img.Interpolation.average,
+    );
+
     List<int> bytes = [];
 
     bytes += generator.reset();
-    bytes += selectCodePage1258();
-
-    bytes += await vietText(
-      generator,
-      bill.storeName.isNotEmpty ? bill.storeName : "PHIẾU THU",
-      styles: const PosStyles(
-        align: PosAlign.center,
-        bold: true,
-        height: PosTextSize.size2,
-        width: PosTextSize.size2,
-      ),
-    );
-
-    if (bill.address.isNotEmpty) {
-      bytes += await vietText(
-        generator,
-        bill.address,
-        styles: const PosStyles(align: PosAlign.center),
-      );
-    }
-
-    if (bill.hotline.isNotEmpty) {
-      bytes += await vietText(
-        generator,
-        "Hotline: ${bill.hotline}",
-        styles: const PosStyles(align: PosAlign.center),
-      );
-    }
-
-    bytes += generator.emptyLines(1);
-
-    bytes += await vietText(
-      generator,
-      "PHIẾU THU CƯỚC VIỄN THÔNG",
-      styles: const PosStyles(align: PosAlign.center, bold: true),
-    );
-
-    bytes += await vietText(
-      generator,
-      "${bill.customerCode}-${DateFormat("ddMMyyyy").format(DateTime.now())}",
-      styles: const PosStyles(align: PosAlign.center),
-    );
-
-    bytes += generator.hr();
-
-    bytes += await vietText(generator, "Khách hàng: ${bill.customerName}");
-    bytes += await vietText(generator, "Mã KH:      ${bill.customerCode}");
-
-    if (bill.subscriberNumber.isNotEmpty) {
-      bytes += await vietText(
-        generator,
-        "Số TB:      ${bill.subscriberNumber}",
-      );
-    }
-
-    if (bill.fullAddress.isNotEmpty) {
-      bytes += await vietText(generator, "Địa chỉ:   ${bill.fullAddress}");
-    }
-
-    bytes += generator.hr();
-
-    bytes += await vietText(generator, "Kỳ hoá đơn: ${bill.billingPeriodName}");
-
-    if (bill.serviceType.isNotEmpty) {
-      bytes += await vietText(generator, "Dịch vụ:    ${bill.serviceType}");
-    }
-
-    if (bill.collectedAt != null) {
-      bytes += await vietText(
-        generator,
-        "Ngày thu:   ${dateFormat.format(bill.collectedAt!.toLocal())}",
-      );
-    }
-
-    bytes += generator.emptyLines(1);
-
-    final colHeader1 = await encodeViet("NỘI DUNG");
-    final colHeader2 = await encodeViet("TIỀN");
-
-    bytes += generator.row([
-      PosColumn(
-        textEncoded: colHeader1,
-        width: 8,
-        styles: const PosStyles(bold: true, underline: true),
-      ),
-      PosColumn(
-        textEncoded: colHeader2,
-        width: 4,
-        styles: const PosStyles(
-          align: PosAlign.right,
-          bold: true,
-          underline: true,
-        ),
-      ),
-    ]);
-
-    final itemName = await encodeViet(
-      bill.serviceType.isNotEmpty ? bill.serviceType : "Cước viễn thông",
-    );
-
-    bytes += generator.row([
-      PosColumn(textEncoded: itemName, width: 8),
-      PosColumn(
-        text: currencyFormat.format(bill.amountDue),
-        width: 4,
-        styles: const PosStyles(align: PosAlign.right),
-      ),
-    ]);
-
-    bytes += generator.hr();
-
-    final totalLabel = await encodeViet("TỔNG CỘNG");
-
-    bytes += generator.row([
-      PosColumn(
-        textEncoded: totalLabel,
-        width: 6,
-        styles: const PosStyles(bold: true),
-      ),
-      PosColumn(
-        text: currencyFormat.format(bill.amountDue),
-        width: 6,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
-    ]);
-
-    bytes += generator.hr();
-
-    bytes += await vietText(
-      generator,
-      "Số tiền đã thu:",
-      styles: const PosStyles(bold: true),
-    );
-
-    bytes += await vietText(
-      generator,
-      "${currencyFormat.format(bill.collectedAmount)} đ",
-      styles: const PosStyles(
-        align: PosAlign.right,
-        bold: true,
-        height: PosTextSize.size2,
-        width: PosTextSize.size2,
-      ),
-    );
-
-    bytes += generator.hr();
-
-    final nvLabel = await encodeViet("NVBH:");
-    final nvName = await encodeViet(bill.collectedBy);
-
-    bytes += generator.row([
-      PosColumn(textEncoded: nvLabel, width: 5),
-      PosColumn(
-        textEncoded: nvName,
-        width: 7,
-        styles: const PosStyles(align: PosAlign.right),
-      ),
-    ]);
-
-    if (bill.billPrintedAt != null) {
-      final printTimeLabel = await encodeViet("Giờ in:");
-
-      bytes += generator.row([
-        PosColumn(textEncoded: printTimeLabel, width: 5),
-        PosColumn(
-          text: dateFormat.format(bill.billPrintedAt!.toLocal()),
-          width: 7,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-    }
-
-    bytes += generator.hr();
-
-    if (bill.adsText.isNotEmpty) {
-      bytes += await vietText(
-        generator,
-        bill.adsText,
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-    }
-
+    bytes += generator.imageRaster(resizedImage, align: PosAlign.center);
     bytes += generator.feed(3);
     bytes += generator.cut();
 
@@ -435,7 +330,10 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
     await Future.delayed(const Duration(milliseconds: 400));
   }
 
-  Future<void> _printBill(BillingRecordProvider provider) async {
+  Future<void> _printBill(
+    BillingRecordProvider provider, {
+    required Uint8List receiptImageBytes,
+  }) async {
     if (selectedPrinter == null) {
       throw Exception("Chưa chọn máy in. Vui lòng chọn máy in trước.");
     }
@@ -470,12 +368,9 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
         await provider.fetchRecordDetail(widget.recordId);
       }
 
-      final BillDataModel billData = await _recordPrintService.getBillData(
-        recordId: widget.recordId,
-        token: token,
+      final List<int> ticketBytes = await _buildImageTicketBytes(
+        receiptImageBytes,
       );
-
-      final List<int> ticketBytes = await _buildTicketBytes(billData);
 
       await _ensureConnected();
 
@@ -531,8 +426,13 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
             currentUser: authProvider.user,
             printerName: selectedPrinter?.name ?? "Chưa chọn máy in",
             paperSizeLabel: paperSize == PaperSizeType.mm58 ? "58mm" : "80mm",
-            onConfirm: () async {
-              await _printBill(provider);
+            hasSelectedPrinter: selectedPrinter != null,
+            onSelectPrinter: () async {
+              await _selectPrinter();
+              return selectedPrinter?.name;
+            },
+            onConfirm: (receiptImageBytes) async {
+              await _printBill(provider, receiptImageBytes: receiptImageBytes);
 
               if (mounted) {
                 Navigator.pop(context);
@@ -591,6 +491,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
               children: [
                 RecordDetailCard(
                   title: "THÔNG TIN KHÁCH HÀNG",
+                  titleColor: AppColors.softRed,
                   children: [
                     InfoTile("Tên khách hàng", record.customerName),
                     InfoTile("Mã khách hàng", record.customerCode),
@@ -602,6 +503,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
                 ),
                 RecordDetailCard(
                   title: "THÔNG TIN HÓA ĐƠN",
+                  titleColor: AppColors.softRed,
                   children: [
                     InfoTile("Kỳ hoá đơn", record.billingPeriodName),
                     InfoTile(
@@ -620,6 +522,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
                 ),
                 RecordDetailCard(
                   title: "CÀI ĐẶT MÁY IN",
+                  titleColor: AppColors.softRed,
                   children: [
                     PrinterSettingsCard(
                       selectedPrinter: selectedPrinter,
@@ -668,7 +571,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
                         backgroundColor: AppColors.primaryRed,
                         foregroundColor: Colors.white,
                       ),
-                      icon: _isPrinting
+                      icon: _isPrinting || _isOpeningPreview
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -679,40 +582,16 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage> {
                             )
                           : const Icon(Icons.print),
                       label: Text(
-                        _isPrinting
-                            ? "Đang in..."
+                        _isPrinting || _isOpeningPreview
+                            ? "Đang xử lý..."
                             : isUnpaid
-                            ? "Thu tiền và in phiếu"
-                            : "In lại phiếu thu",
+                            ? "Xem trước và thu tiền"
+                            : "Xem trước và in lại",
                       ),
-                      onPressed: _isPrinting
+                      onPressed: _isPrinting || _isOpeningPreview
                           ? null
                           : () async {
-                              try {
-                                await _printBill(provider);
-
-                                if (!mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      isUnpaid
-                                          ? "In phiếu thu thành công ✓"
-                                          : "In lại phiếu thu thành công ✓",
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(e.toString()),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
+                              await _openPreview(provider);
                             },
                     ),
                   ),

@@ -16,6 +16,8 @@ class BillingRecordProvider extends ChangeNotifier {
 
   String? error;
 
+  int? currentPeriodId;
+
   // =========================
   // LIST BY PERIOD
   // =========================
@@ -23,6 +25,7 @@ class BillingRecordProvider extends ChangeNotifier {
     try {
       isLoading = true;
       error = null;
+      currentPeriodId = periodId;
       notifyListeners();
 
       records = await service.getRecordsByPeriod(periodId);
@@ -32,6 +35,58 @@ class BillingRecordProvider extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  // =========================
+  // FILTER RECORDS
+  // =========================
+  Future<void> filterRecords({
+    int? periodId,
+    String? search,
+    String? province,
+    String? ward,
+    String? hamlet,
+    String? street,
+    String? collectionStatus,
+    String? debtStatus,
+    int? assignedUserId,
+    String? billPrintedDate,
+  }) async {
+    try {
+      isLoading = true;
+      error = null;
+      notifyListeners();
+
+      final targetPeriodId = periodId ?? currentPeriodId;
+
+      records = await service.getRecords(
+        periodId: targetPeriodId,
+        page: 0,
+        size: 100,
+        search: search,
+        province: province,
+        ward: ward,
+        hamlet: hamlet,
+        street: street,
+        collectionStatus: collectionStatus,
+        debtStatus: debtStatus,
+        assignedUserId: assignedUserId,
+        billPrintedDate: billPrintedDate,
+      );
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // =========================
+  // RESET FILTER
+  // =========================
+  Future<void> resetFilter() async {
+    if (currentPeriodId == null) return;
+    await fetchRecordsByPeriod(currentPeriodId!);
   }
 
   // =========================

@@ -15,6 +15,9 @@ class BillingRecordModel {
   final String street;
   final String? fullAddress;
 
+  final String serviceType;
+  final String adsContent;
+
   final int? assignedConsultantId;
   final String assignedConsultantName;
 
@@ -22,11 +25,11 @@ class BillingRecordModel {
   final String debtStatus;
 
   final num collectedAmount;
-  final String collectedBy;
+  final String collectedByName;
   final DateTime? collectedAt;
   final DateTime? billPrintedAt;
 
-  final String debtMarkedBy;
+  final String debtMarkedByName;
   final DateTime? debtMarkedAt;
 
   final String syncWarning;
@@ -49,15 +52,17 @@ class BillingRecordModel {
     required this.hamlet,
     required this.street,
     this.fullAddress,
+    required this.serviceType,
+    required this.adsContent,
     this.assignedConsultantId,
     required this.assignedConsultantName,
     required this.collectionStatus,
     required this.debtStatus,
     required this.collectedAmount,
-    required this.collectedBy,
+    required this.collectedByName,
     this.collectedAt,
     this.billPrintedAt,
-    required this.debtMarkedBy,
+    required this.debtMarkedByName,
     this.debtMarkedAt,
     required this.syncWarning,
     this.syncWarningNote,
@@ -85,6 +90,9 @@ class BillingRecordModel {
       street: data["street"]?.toString() ?? "",
       fullAddress: data["fullAddress"]?.toString(),
 
+      serviceType: data["serviceType"]?.toString() ?? "",
+      adsContent: data["adsContent"]?.toString() ?? "",
+
       assignedConsultantId: data["assignedConsultantId"],
       assignedConsultantName: data["assignedConsultantName"]?.toString() ?? "",
 
@@ -92,11 +100,11 @@ class BillingRecordModel {
       debtStatus: data["debtStatus"]?.toString() ?? "",
 
       collectedAmount: _toNum(data["collectedAmount"]),
-      collectedBy: data["collectedBy"]?.toString() ?? "",
+      collectedByName: data["collectedByName"]?.toString() ?? "",
       collectedAt: _toDate(data["collectedAt"]),
       billPrintedAt: _toDate(data["billPrintedAt"]),
 
-      debtMarkedBy: data["debtMarkedBy"]?.toString() ?? "",
+      debtMarkedByName: data["debtMarkedByName"]?.toString() ?? "",
       debtMarkedAt: _toDate(data["debtMarkedAt"]),
 
       syncWarning: data["syncWarning"]?.toString() ?? "",
@@ -106,6 +114,9 @@ class BillingRecordModel {
       updatedAt: _toDate(data["updatedAt"]),
     );
   }
+
+  String get collectedBy => collectedByName;
+  String get debtMarkedBy => debtMarkedByName;
 
   static num _toNum(dynamic value) {
     if (value == null) return 0;

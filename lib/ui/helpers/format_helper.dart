@@ -78,4 +78,61 @@ class FormatHelper {
 
     return NumberFormat("#,###", "vi_VN").format(amount);
   }
+
+  // =========================
+  // BILL PRINT TIME
+  // =========================
+
+  static String formatBillPrintDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  static String formatBillPrintDateTime(DateTime date) {
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+  }
+
+  // =========================
+  // ROLE
+  // =========================
+
+  static String formatRole(dynamic role) {
+    if (role == null || role.toString().trim().isEmpty) {
+      return "Không có dữ liệu";
+    }
+
+    switch (role.toString().toUpperCase()) {
+      case "MANAGER":
+        return "Quản lý";
+
+      case "CONSULTANT":
+        return "Nhân viên thu cước";
+
+      case "ADMIN":
+        return "Quản trị viên";
+
+      default:
+        return role.toString();
+    }
+  }
+
+  // =========================
+  // ACCOUNT STATUS
+  // =========================
+
+  static String formatAccountStatus(dynamic status) {
+    if (status == null || status.toString().trim().isEmpty) {
+      return "Không có dữ liệu";
+    }
+
+    switch (status.toString().toUpperCase()) {
+      case "ACTIVE":
+        return "Đang hoạt động";
+
+      case "INACTIVE":
+        return "Ngừng hoạt động";
+
+      default:
+        return status.toString();
+    }
+  }
 }

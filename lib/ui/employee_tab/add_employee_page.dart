@@ -1,6 +1,7 @@
 import 'package:billing_app/ui/employee_tab/employee_submit_data.dart';
 import 'package:billing_app/ui/helpers/custom_dropdown_field.dart';
 import 'package:billing_app/ui/helpers/custom_input_field.dart';
+import 'package:billing_app/ui/helpers/format_helper.dart';
 import 'package:billing_app/ui/helpers/toast_utils.dart';
 import 'package:flutter/material.dart';
 
@@ -100,7 +101,6 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
     final phone = phoneController.text.trim();
 
     if (phone.isNotEmpty) {
-      // chỉ cho phép số
       final phoneRegex = RegExp(r'^[0-9]+$');
 
       if (!phoneRegex.hasMatch(phone)) {
@@ -109,7 +109,6 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
         return;
       }
 
-      // phải đúng 10 số
       if (phone.length != 10) {
         _showError("Số điện thoại phải gồm đúng 10 số");
 
@@ -255,12 +254,15 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
               label: "Vai trò",
               icon: Icons.badge,
               value: role,
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: "CONSULTANT",
-                  child: Text("CONSULTANT"),
+                  child: Text(FormatHelper.formatRole("CONSULTANT")),
                 ),
-                DropdownMenuItem(value: "MANAGER", child: Text("MANAGER")),
+                DropdownMenuItem(
+                  value: "MANAGER",
+                  child: Text(FormatHelper.formatRole("MANAGER")),
+                ),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -280,9 +282,15 @@ class _AddEmployeePageState extends State<AddEmployeePage> {
               label: "Trạng thái",
               icon: Icons.circle,
               value: status,
-              items: const [
-                DropdownMenuItem(value: "ACTIVE", child: Text("ACTIVE")),
-                DropdownMenuItem(value: "INACTIVE", child: Text("INACTIVE")),
+              items: [
+                DropdownMenuItem(
+                  value: "ACTIVE",
+                  child: Text(FormatHelper.formatAccountStatus("ACTIVE")),
+                ),
+                DropdownMenuItem(
+                  value: "INACTIVE",
+                  child: Text(FormatHelper.formatAccountStatus("INACTIVE")),
+                ),
               ],
               onChanged: (v) {
                 if (v == null) return;

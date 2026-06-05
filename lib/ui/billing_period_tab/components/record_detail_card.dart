@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class RecordDetailCard extends StatelessWidget {
   final String title;
+  final Color? titleColor;
   final List<Widget> children;
 
   const RecordDetailCard({
     super.key,
     required this.title,
     required this.children,
+    this.titleColor,
   });
 
   @override
@@ -31,10 +33,11 @@ class RecordDetailCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
               fontSize: 13,
-              color: Colors.grey,
+              letterSpacing: 0.6,
+              color: titleColor ?? Colors.grey,
             ),
           ),
           const SizedBox(height: 12),

@@ -1,14 +1,26 @@
 import 'package:billing_app/ui/helpers/custom_dropdown_field.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:billing_app/core/app_colors.dart';
+import '../../../provider/billing_record_provider.dart';
 
 enum BillingFilterType { period, record }
 
 class BillingFilterCard extends StatefulWidget {
   final BillingFilterType type;
+  final int? periodId;
 
-  const BillingFilterCard({super.key, required this.type});
+  final void Function({String? year, String? status})? onPeriodFilter;
+  final VoidCallback? onPeriodReset;
+
+  const BillingFilterCard({
+    super.key,
+    required this.type,
+    this.periodId,
+    this.onPeriodFilter,
+    this.onPeriodReset,
+  });
 
   @override
   State<BillingFilterCard> createState() => _BillingFilterCardState();
@@ -18,24 +30,28 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     with TickerProviderStateMixin {
   bool expanded = false;
 
-  /// PERIOD FILTER
   String? selectedYear;
   String? selectedPeriodStatus;
 
-  /// RECORD FILTER
-  String? selectedRecordStatus;
+  String? selectedCollectionStatus;
+  String? selectedDebtStatus;
   String? selectedWard;
+  String? selectedBillPrintedDate;
 
   final TextEditingController searchController = TextEditingController();
 
-  /// MOCK DATA
-  /// TODO: Replace with API
-
-  final List<String> years = ["2025", "2026", "2027"];
-
+  final List<String> years = ["2023", "2024", "2025", "2026"];
   final List<String> periodStatuses = ["OPEN", "CLOSED"];
 
-  final List<String> recordStatuses = ["CHUA_THU", "DA_IN_BILL", "DA_GACH_NO"];
+  final List<_FilterOption> collectionStatusOptions = const [
+    _FilterOption(label: "Chưa thu", value: "CHUA_THU"),
+    _FilterOption(label: "Đã thanh toán", value: "DA_THANH_TOAN"),
+  ];
+
+  final List<_FilterOption> debtStatusOptions = const [
+    _FilterOption(label: "Chưa gạch nợ", value: "CHUA_GACH_NO"),
+    _FilterOption(label: "Đã gạch nợ", value: "DA_GACH_NO"),
+  ];
 
   final List<String> wards = ["Hiệp Hưng", "Hòa An"];
 
@@ -45,40 +61,64 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     super.dispose();
   }
 
-  void resetFilter() {
+  Future<void> resetFilter() async {
     setState(() {
       selectedYear = null;
       selectedPeriodStatus = null;
 
-      selectedRecordStatus = null;
+      selectedCollectionStatus = null;
+      selectedDebtStatus = null;
       selectedWard = null;
+      selectedBillPrintedDate = null;
 
       searchController.clear();
     });
+
+    if (widget.type == BillingFilterType.period) {
+      widget.onPeriodReset?.call();
+      return;
+    }
+
+    await context.read<BillingRecordProvider>().resetFilter();
   }
 
-  void onSearch() {
+  Future<void> onSearch() async {
     if (widget.type == BillingFilterType.period) {
-      final filters = {"year": selectedYear, "status": selectedPeriodStatus};
-
-      debugPrint("PERIOD FILTER");
-      debugPrint(filters.toString());
-
-      /// TODO
-      /// context.read<BillingPeriodProvider>().filter(...)
-    } else {
-      final filters = {
-        "status": selectedRecordStatus,
-        "ward": selectedWard,
-        "search": searchController.text.trim(),
-      };
-
-      debugPrint("RECORD FILTER");
-      debugPrint(filters.toString());
-
-      /// TODO
-      /// context.read<BillingRecordProvider>().filter(...)
+      widget.onPeriodFilter?.call(
+        year: selectedYear,
+        status: selectedPeriodStatus,
+      );
+      return;
     }
+
+    await context.read<BillingRecordProvider>().filterRecords(
+      periodId: widget.periodId,
+      search: searchController.text.trim(),
+      ward: selectedWard,
+      collectionStatus: selectedCollectionStatus,
+      debtStatus: selectedDebtStatus,
+      billPrintedDate: selectedBillPrintedDate,
+    );
+  }
+
+  Future<void> _pickBillPrintedDate() async {
+    final now = DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(now.year + 2),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      selectedBillPrintedDate =
+          "${picked.year.toString().padLeft(4, '0')}-"
+          "${picked.month.toString().padLeft(2, '0')}-"
+          "${picked.day.toString().padLeft(2, '0')}";
+    });
   }
 
   @override
@@ -87,12 +127,9 @@ class _BillingFilterCardState extends State<BillingFilterCard>
 
     return Container(
       margin: const EdgeInsets.all(16),
-
       decoration: BoxDecoration(
         color: Colors.white,
-
         borderRadius: BorderRadius.circular(24),
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -101,40 +138,27 @@ class _BillingFilterCardState extends State<BillingFilterCard>
           ),
         ],
       ),
-
       child: Column(
         children: [
           InkWell(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-
-            onTap: () {
-              setState(() {
-                expanded = !expanded;
-              });
-            },
-
+            onTap: () => setState(() => expanded = !expanded),
             child: Padding(
               padding: const EdgeInsets.all(18),
-
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-
                     decoration: BoxDecoration(
                       color: AppColors.primaryRed.withOpacity(0.1),
-
                       borderRadius: BorderRadius.circular(14),
                     ),
-
                     child: const Icon(
                       Icons.filter_alt_outlined,
                       color: AppColors.primaryRed,
                     ),
                   ),
-
                   const SizedBox(width: 14),
-
                   Expanded(
                     child: Text(
                       isPeriod ? "Bộ lọc kỳ cước" : "Bộ lọc hóa đơn",
@@ -144,7 +168,6 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                       ),
                     ),
                   ),
-
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 250),
@@ -158,13 +181,10 @@ class _BillingFilterCardState extends State<BillingFilterCard>
           ClipRect(
             child: AnimatedSize(
               duration: const Duration(milliseconds: 250),
-
               curve: Curves.easeInOut,
-
               child: expanded
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-
                       child: Column(
                         children: [
                           if (isPeriod) ...[
@@ -173,59 +193,45 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                                 Expanded(
                                   child: CustomDropdownField<String>(
                                     label: "Năm",
-
                                     icon: Icons.calendar_month,
-
                                     value: selectedYear,
-
-                                    items: years.map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      );
-                                    }).toList(),
-
+                                    items: years
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ),
+                                        )
+                                        .toList(),
                                     onChanged: (v) {
-                                      setState(() {
-                                        selectedYear = v;
-                                      });
+                                      setState(() => selectedYear = v);
                                     },
-
                                     onClear: () {
-                                      setState(() {
-                                        selectedYear = null;
-                                      });
+                                      setState(() => selectedYear = null);
                                     },
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: CustomDropdownField<String>(
                                     label: "Trạng thái",
-
                                     icon: Icons.pending_actions,
-
                                     value: selectedPeriodStatus,
-
-                                    items: periodStatuses.map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      );
-                                    }).toList(),
-
+                                    items: periodStatuses
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ),
+                                        )
+                                        .toList(),
                                     onChanged: (v) {
-                                      setState(() {
-                                        selectedPeriodStatus = v;
-                                      });
+                                      setState(() => selectedPeriodStatus = v);
                                     },
-
                                     onClear: () {
-                                      setState(() {
-                                        selectedPeriodStatus = null;
-                                      });
+                                      setState(
+                                        () => selectedPeriodStatus = null,
+                                      );
                                     },
                                   ),
                                 ),
@@ -238,86 +244,140 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                               children: [
                                 Expanded(
                                   child: CustomDropdownField<String>(
-                                    label: "Trạng thái",
-
-                                    icon: Icons.pending_actions,
-
-                                    value: selectedRecordStatus,
-
-                                    items: recordStatuses.map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(
-                                          e,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      );
-                                    }).toList(),
-
+                                    label: "Trạng thái thu",
+                                    icon: Icons.payments_outlined,
+                                    value: selectedCollectionStatus,
+                                    items: collectionStatusOptions
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e.value,
+                                            child: Text(
+                                              e.label,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
                                     onChanged: (v) {
-                                      setState(() {
-                                        selectedRecordStatus = v;
-                                      });
+                                      setState(
+                                        () => selectedCollectionStatus = v,
+                                      );
                                     },
-
                                     onClear: () {
-                                      setState(() {
-                                        selectedRecordStatus = null;
-                                      });
+                                      setState(
+                                        () => selectedCollectionStatus = null,
+                                      );
                                     },
                                   ),
                                 ),
-
                                 const SizedBox(width: 12),
-
                                 Expanded(
                                   child: CustomDropdownField<String>(
-                                    label: "Xã",
-
-                                    icon: Icons.location_city,
-
-                                    value: selectedWard,
-
-                                    items: wards.map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      );
-                                    }).toList(),
-
+                                    label: "Gạch nợ",
+                                    icon: Icons.account_balance_wallet_outlined,
+                                    value: selectedDebtStatus,
+                                    items: debtStatusOptions
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e.value,
+                                            child: Text(
+                                              e.label,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
                                     onChanged: (v) {
-                                      setState(() {
-                                        selectedWard = v;
-                                      });
+                                      setState(() => selectedDebtStatus = v);
                                     },
-
                                     onClear: () {
-                                      setState(() {
-                                        selectedWard = null;
-                                      });
+                                      setState(() => selectedDebtStatus = null);
                                     },
                                   ),
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 14),
-
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: CustomDropdownField<String>(
+                                    label: "Xã",
+                                    icon: Icons.location_city,
+                                    value: selectedWard,
+                                    items: wards
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (v) {
+                                      setState(() => selectedWard = v);
+                                    },
+                                    onClear: () {
+                                      setState(() => selectedWard = null);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: _pickBillPrintedDate,
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: InputDecorator(
+                                      decoration: InputDecoration(
+                                        labelText: "Ngày in bill",
+                                        prefixIcon: const Icon(
+                                          Icons.event_available,
+                                          color: AppColors.primaryRed,
+                                        ),
+                                        suffixIcon:
+                                            selectedBillPrintedDate == null
+                                            ? null
+                                            : IconButton(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    selectedBillPrintedDate =
+                                                        null;
+                                                  });
+                                                },
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                        filled: true,
+                                        fillColor: AppColors.background,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        selectedBillPrintedDate ?? "Chọn ngày",
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
                             TextField(
                               controller: searchController,
-
                               decoration: InputDecoration(
-                                hintText: "Tên KH / SĐT / Mã khách hàng",
-
+                                hintText: "Tên KH / SĐT / Mã KH / Thuê bao",
                                 hintStyle: const TextStyle(
                                   color: AppColors.textSecondary,
                                 ),
-
                                 prefixIcon: const Icon(
                                   Icons.search,
                                   color: AppColors.primaryRed,
                                 ),
-
                                 suffixIcon: searchController.text.isEmpty
                                     ? null
                                     : IconButton(
@@ -326,27 +386,20 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                                             searchController.clear();
                                           });
                                         },
-
                                         icon: Icon(
                                           Icons.close,
                                           size: 18,
                                           color: Colors.black.withOpacity(0.5),
                                         ),
                                       ),
-
                                 filled: true,
-
                                 fillColor: AppColors.background,
-
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
                                   borderSide: BorderSide.none,
                                 ),
                               ),
-
-                              onChanged: (_) {
-                                setState(() {});
-                              },
+                              onChanged: (_) => setState(() {}),
                             ),
                           ],
 
@@ -362,33 +415,24 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                                       54,
                                     ),
                                   ),
-
                                   onPressed: resetFilter,
-
                                   child: const Text("ĐẶT LẠI"),
                                 ),
                               ),
-
                               const SizedBox(width: 12),
-
                               Expanded(
                                 flex: 2,
-
                                 child: SizedBox(
                                   height: 54,
-
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primaryRed,
                                     ),
-
                                     onPressed: onSearch,
-
                                     icon: const Icon(
                                       Icons.search,
                                       color: Colors.white,
                                     ),
-
                                     label: const Text(
                                       "TÌM KIẾM",
                                       style: TextStyle(
@@ -411,4 +455,11 @@ class _BillingFilterCardState extends State<BillingFilterCard>
       ),
     );
   }
+}
+
+class _FilterOption {
+  final String label;
+  final String value;
+
+  const _FilterOption({required this.label, required this.value});
 }
