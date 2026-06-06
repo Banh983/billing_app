@@ -93,6 +93,8 @@ class OverviewSection extends StatelessWidget {
                 value: (overview.progressPercentage / 100).clamp(0, 1),
                 minHeight: 8,
                 borderRadius: BorderRadius.circular(20),
+                color: Colors.red,
+                backgroundColor: Colors.red.withOpacity(0.2),
               ),
             ],
           ),

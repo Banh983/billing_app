@@ -135,4 +135,15 @@ class FormatHelper {
         return status.toString();
     }
   }
+  // =========================
+  // COUNT BADGE
+  // =========================
+
+  static String formatCount(int? count, {int max = 99}) {
+    if (count == null || count <= 0) {
+      return "0";
+    }
+
+    return count > max ? "$max+" : count.toString();
+  }
 }

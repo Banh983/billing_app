@@ -42,6 +42,8 @@ class ConsultantSection extends StatelessWidget {
                       value: item.progress.clamp(0, 1),
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(20),
+                      color: Colors.green,
+                      backgroundColor: Colors.green.withOpacity(0.2),
                     ),
                     const SizedBox(height: 6),
                     Text(

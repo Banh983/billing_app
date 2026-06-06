@@ -1,7 +1,7 @@
 import 'package:billing_app/ui/billing_period_tab/billing_period_page.dart';
-import 'package:billing_app/ui/customer_tab/customer_page.dart';
 import 'package:billing_app/ui/dashboard_tab/dashboard_page.dart';
 import 'package:billing_app/ui/employee_tab/employee_page.dart';
+import 'package:billing_app/ui/history_tab/history_page.dart';
 import 'package:billing_app/ui/profile_tab/profile_page.dart';
 import 'package:flutter/material.dart';
 
@@ -42,6 +42,7 @@ class _HomePageState extends State<HomePage> {
       BillingPeriodPage(),
 
       // CustomerPage(),
+      HistoryPage(),
 
       if (isManager) EmployeePage(),
 
@@ -63,8 +64,7 @@ class _HomePageState extends State<HomePage> {
     final pageList = pages;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Hệ thống thu cước")),
-
+      // appBar: AppBar(title: const Text("Hệ thống thu cước")),
       body: pageList[currentIndex],
 
       bottomNavigationBar: AppNavigation(

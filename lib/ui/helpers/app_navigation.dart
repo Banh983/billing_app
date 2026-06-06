@@ -28,7 +28,12 @@ class AppNavigation extends StatelessWidget {
 
         const BottomNavigationBarItem(
           icon: Icon(Icons.receipt_long),
-          label: "Hóa đơn",
+          label: "Kỳ cước",
+        ),
+
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.history),
+          label: "Lịch sử",
         ),
 
         // const BottomNavigationBarItem(
