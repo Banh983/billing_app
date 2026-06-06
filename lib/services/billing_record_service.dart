@@ -23,10 +23,6 @@ class BillingRecordService {
     int size = 100,
     int? periodId,
     String? search,
-    String? province,
-    String? ward,
-    String? hamlet,
-    String? street,
     String? collectionStatus,
     String? debtStatus,
     int? assignedUserId,
@@ -35,18 +31,20 @@ class BillingRecordService {
     final queryParams = <String, String>{
       "page": page.toString(),
       "size": size.toString(),
+
       if (periodId != null) "periodId": periodId.toString(),
-      if (_hasValue(search)) "search": search!.trim(),
-      if (_hasValue(province)) "province": province!.trim(),
-      if (_hasValue(ward)) "ward": ward!.trim(),
-      if (_hasValue(hamlet)) "hamlet": hamlet!.trim(),
-      if (_hasValue(street)) "street": street!.trim(),
+
       if (_hasValue(collectionStatus))
         "collectionStatus": collectionStatus!.trim(),
+
       if (_hasValue(debtStatus)) "debtStatus": debtStatus!.trim(),
+
       if (assignedUserId != null) "assignedUserId": assignedUserId.toString(),
+
       if (_hasValue(billPrintedDate))
         "billPrintedDate": billPrintedDate!.trim(),
+
+      if (_hasValue(search)) "search": search!.trim(),
     };
 
     final uri = Uri.parse(
@@ -54,6 +52,7 @@ class BillingRecordService {
     ).replace(queryParameters: queryParams);
 
     final response = await http.get(uri, headers: headers);
+
     final bodyText = utf8.decode(response.bodyBytes);
     final body = bodyText.isNotEmpty ? jsonDecode(bodyText) : {};
 

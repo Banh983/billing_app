@@ -1,3 +1,4 @@
+import 'package:billing_app/ui/billing_period_tab/billing_record_detail_page.dart';
 import 'package:flutter/material.dart';
 
 import 'components/warning_card.dart';
@@ -25,7 +26,27 @@ class WarningPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               itemCount: warnings.length,
               itemBuilder: (context, index) {
-                return WarningCard(item: warnings[index], compact: false);
+                final item = warnings[index];
+
+                return WarningCard(
+                  item: item,
+                  compact: false,
+                  onTap: () {
+                    final recordId = item is Map<String, dynamic>
+                        ? item["id"]
+                        : null;
+
+                    if (recordId == null) return;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            BillingRecordDetailPage(recordId: recordId),
+                      ),
+                    );
+                  },
+                );
               },
             ),
     );

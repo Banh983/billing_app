@@ -35,7 +35,6 @@ class _BillingFilterCardState extends State<BillingFilterCard>
 
   String? selectedCollectionStatus;
   String? selectedDebtStatus;
-  String? selectedWard;
   String? selectedBillPrintedDate;
 
   final TextEditingController searchController = TextEditingController();
@@ -53,8 +52,6 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     _FilterOption(label: "Đã gạch nợ", value: "DA_GACH_NO"),
   ];
 
-  final List<String> wards = ["Hiệp Hưng", "Hòa An"];
-
   @override
   void dispose() {
     searchController.dispose();
@@ -68,7 +65,6 @@ class _BillingFilterCardState extends State<BillingFilterCard>
 
       selectedCollectionStatus = null;
       selectedDebtStatus = null;
-      selectedWard = null;
       selectedBillPrintedDate = null;
 
       searchController.clear();
@@ -94,7 +90,6 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     await context.read<BillingRecordProvider>().filterRecords(
       periodId: widget.periodId,
       search: searchController.text.trim(),
-      ward: selectedWard,
       collectionStatus: selectedCollectionStatus,
       debtStatus: selectedDebtStatus,
       billPrintedDate: selectedBillPrintedDate,
@@ -298,75 +293,46 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                               ],
                             ),
                             const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: CustomDropdownField<String>(
-                                    label: "Xã",
-                                    icon: Icons.location_city,
-                                    value: selectedWard,
-                                    items: wards
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e,
-                                            child: Text(e),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) {
-                                      setState(() => selectedWard = v);
-                                    },
-                                    onClear: () {
-                                      setState(() => selectedWard = null);
-                                    },
+
+                            InkWell(
+                              onTap: _pickBillPrintedDate,
+                              borderRadius: BorderRadius.circular(18),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: "Ngày in bill",
+                                  prefixIcon: const Icon(
+                                    Icons.event_available,
+                                    color: AppColors.primaryRed,
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: _pickBillPrintedDate,
+                                  suffixIcon: selectedBillPrintedDate == null
+                                      ? null
+                                      : IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedBillPrintedDate = null;
+                                            });
+                                          },
+                                          icon: const Icon(
+                                            Icons.close,
+                                            size: 18,
+                                          ),
+                                        ),
+                                  filled: true,
+                                  fillColor: AppColors.background,
+                                  border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(18),
-                                    child: InputDecorator(
-                                      decoration: InputDecoration(
-                                        labelText: "Ngày in bill",
-                                        prefixIcon: const Icon(
-                                          Icons.event_available,
-                                          color: AppColors.primaryRed,
-                                        ),
-                                        suffixIcon:
-                                            selectedBillPrintedDate == null
-                                            ? null
-                                            : IconButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    selectedBillPrintedDate =
-                                                        null;
-                                                  });
-                                                },
-                                                icon: const Icon(
-                                                  Icons.close,
-                                                  size: 18,
-                                                ),
-                                              ),
-                                        filled: true,
-                                        fillColor: AppColors.background,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            18,
-                                          ),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        selectedBillPrintedDate ?? "Chọn ngày",
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
+                                    borderSide: BorderSide.none,
                                   ),
                                 ),
-                              ],
+                                child: Text(
+                                  selectedBillPrintedDate ?? "Chọn ngày",
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
+
                             const SizedBox(height: 14),
+
                             TextField(
                               controller: searchController,
                               decoration: InputDecoration(

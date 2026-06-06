@@ -39,14 +39,13 @@ class BillingRecordProvider extends ChangeNotifier {
 
   // =========================
   // FILTER RECORDS
+  // Đúng theo backend:
+  // periodId, collectionStatus, debtStatus,
+  // assignedUserId, billPrintedDate, search
   // =========================
   Future<void> filterRecords({
     int? periodId,
     String? search,
-    String? province,
-    String? ward,
-    String? hamlet,
-    String? street,
     String? collectionStatus,
     String? debtStatus,
     int? assignedUserId,
@@ -64,10 +63,6 @@ class BillingRecordProvider extends ChangeNotifier {
         page: 0,
         size: 100,
         search: search,
-        province: province,
-        ward: ward,
-        hamlet: hamlet,
-        street: street,
         collectionStatus: collectionStatus,
         debtStatus: debtStatus,
         assignedUserId: assignedUserId,
@@ -98,9 +93,7 @@ class BillingRecordProvider extends ChangeNotifier {
       error = null;
       notifyListeners();
 
-      final data = await service.getRecordDetail(recordId);
-
-      selectedRecord = data;
+      selectedRecord = await service.getRecordDetail(recordId);
     } catch (e) {
       error = e.toString();
     } finally {
@@ -132,6 +125,11 @@ class BillingRecordProvider extends ChangeNotifier {
       );
 
       selectedRecord = await service.getRecordDetail(recordId);
+
+      final index = records.indexWhere((e) => e.id == recordId);
+      if (index != -1 && selectedRecord != null) {
+        records[index] = selectedRecord!;
+      }
     } catch (e) {
       error = e.toString();
       rethrow;
