@@ -39,36 +39,7 @@ class BillingRecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    record.customerName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    _getStatusText(record),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildHeader(statusColor),
 
             const SizedBox(height: 16),
 
@@ -97,61 +68,117 @@ class BillingRecordCard extends StatelessWidget {
               _getDebtStatusText(record),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    FormatHelper.formatMoney(record.amountDue),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-
-                if (canMarkDebt) ...[
-                  ElevatedButton.icon(
-                    onPressed: onMarkDebt,
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text("Gạch nợ"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-
-                ElevatedButton.icon(
-                  onPressed: onTap,
-                  icon: const Icon(Icons.visibility),
-                  label: const Text("Chi tiết"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: statusColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildBottom(statusColor: statusColor, canMarkDebt: canMarkDebt),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(Color statusColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            record.customerName,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Text(
+            _getStatusText(record),
+            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottom({required Color statusColor, required bool canMarkDebt}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: _amountText(statusColor),
+        ),
+
+        const SizedBox(height: 14),
+
+        Align(
+          alignment: Alignment.centerRight,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              if (canMarkDebt)
+                _actionButton(
+                  label: "Gạch nợ",
+                  icon: Icons.check_circle_outline,
+                  color: Colors.red,
+                  onPressed: onMarkDebt,
+                ),
+              _actionButton(
+                label: "Chi tiết",
+                icon: Icons.visibility,
+                color: statusColor,
+                onPressed: onTap,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _amountText(Color statusColor) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 220),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: Text(
+          FormatHelper.formatMoney(record.amountDue),
+          maxLines: 1,
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: statusColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -171,7 +198,9 @@ class BillingRecordCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: Text(value, maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
         ],
       ),
     );
