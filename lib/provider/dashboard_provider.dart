@@ -19,8 +19,15 @@ class DashboardProvider extends ChangeNotifier {
   int selectedMonth = DateTime.now().month;
   int selectedYear = DateTime.now().year;
 
+  bool _canViewManagerDashboard(String role) {
+    final normalizedRole = role.trim().toUpperCase();
+
+    return normalizedRole == "MANAGER" || normalizedRole == "ADMIN";
+  }
+
   Future<void> fetchDashboard({
     required String token,
+    required String role,
     int? month,
     int? year,
   }) async {
@@ -38,33 +45,40 @@ class DashboardProvider extends ChangeNotifier {
       selectedMonth = month ?? selectedMonth;
       selectedYear = year ?? selectedYear;
 
-      final today = DateTime.now();
-      final date =
-          "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      overview = await service.getOverview(
+        month: selectedMonth,
+        year: selectedYear,
+        token: token,
+      );
 
-      final result = await Future.wait([
-        service.getOverview(
-          month: selectedMonth,
-          year: selectedYear,
-          token: token,
-        ),
-        service.getConsultants(
-          month: selectedMonth,
-          year: selectedYear,
-          token: token,
-        ),
-        service.getDailyStats(date: date, token: token),
-        service.getWarnings(
-          month: selectedMonth,
-          year: selectedYear,
-          token: token,
-        ),
-      ]);
+      if (_canViewManagerDashboard(role)) {
+        final today = DateTime.now();
 
-      overview = result[0] as DashboardOverviewModel;
-      consultants = result[1] as List<ConsultantPerformanceModel>;
-      dailyStats = result[2] as List<ConsultantDailyStatsModel>;
-      warnings = result[3] as List<dynamic>;
+        final date =
+            "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+
+        final result = await Future.wait([
+          service.getConsultants(
+            month: selectedMonth,
+            year: selectedYear,
+            token: token,
+          ),
+          service.getDailyStats(date: date, token: token),
+          service.getWarnings(
+            month: selectedMonth,
+            year: selectedYear,
+            token: token,
+          ),
+        ]);
+
+        consultants = result[0] as List<ConsultantPerformanceModel>;
+        dailyStats = result[1] as List<ConsultantDailyStatsModel>;
+        warnings = result[2];
+      } else {
+        consultants = [];
+        dailyStats = [];
+        warnings = [];
+      }
     } catch (e) {
       error = e.toString().replaceAll("Exception: ", "");
     } finally {
@@ -73,9 +87,10 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refresh(String token) async {
+  Future<void> refresh(String token, String role) async {
     await fetchDashboard(
       token: token,
+      role: role,
       month: selectedMonth,
       year: selectedYear,
     );

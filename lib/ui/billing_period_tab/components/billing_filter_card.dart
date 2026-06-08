@@ -1,4 +1,5 @@
 import 'package:billing_app/ui/helpers/custom_dropdown_field.dart';
+import 'package:billing_app/ui/helpers/format_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -62,11 +63,9 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     setState(() {
       selectedYear = null;
       selectedPeriodStatus = null;
-
       selectedCollectionStatus = null;
       selectedDebtStatus = null;
       selectedBillPrintedDate = null;
-
       searchController.clear();
     });
 
@@ -116,6 +115,106 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     });
   }
 
+  Widget _responsiveTwoColumns({
+    required Widget first,
+    required Widget second,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 430;
+        final itemWidth = isSmall
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 12) / 2;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 14,
+          children: [
+            SizedBox(width: itemWidth, child: first),
+            SizedBox(width: itemWidth, child: second),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _actionButtons() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 360;
+
+        if (isSmall) {
+          return Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: resetFilter,
+                  child: const Text("ĐẶT LẠI"),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                  ),
+                  onPressed: onSearch,
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  label: const Text(
+                    "TÌM KIẾM",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 54),
+                ),
+                onPressed: resetFilter,
+                child: const Text("ĐẶT LẠI"),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                  ),
+                  onPressed: onSearch,
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  label: const Text(
+                    "TÌM KIẾM",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPeriod = widget.type == BillingFilterType.period;
@@ -161,6 +260,7 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   AnimatedRotation(
@@ -182,115 +282,101 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                       child: Column(
                         children: [
-                          if (isPeriod) ...[
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: CustomDropdownField<String>(
-                                    label: "Năm",
-                                    icon: Icons.calendar_month,
-                                    value: selectedYear,
-                                    items: years
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e,
-                                            child: Text(e),
+                          if (isPeriod)
+                            _responsiveTwoColumns(
+                              first: CustomDropdownField<String>(
+                                label: "Năm",
+                                icon: Icons.calendar_month,
+                                value: selectedYear,
+                                items: years
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) {
+                                  setState(() => selectedYear = v);
+                                },
+                                onClear: () {
+                                  setState(() => selectedYear = null);
+                                },
+                              ),
+                              second: CustomDropdownField<String>(
+                                label: "Trạng thái",
+                                icon: Icons.pending_actions,
+                                value: selectedPeriodStatus,
+                                items: periodStatuses
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text(
+                                          FormatHelper.formatBillingPeriodStatus(
+                                            e,
                                           ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) {
-                                      setState(() => selectedYear = v);
-                                    },
-                                    onClear: () {
-                                      setState(() => selectedYear = null);
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: CustomDropdownField<String>(
-                                    label: "Trạng thái",
-                                    icon: Icons.pending_actions,
-                                    value: selectedPeriodStatus,
-                                    items: periodStatuses
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e,
-                                            child: Text(e),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) {
-                                      setState(() => selectedPeriodStatus = v);
-                                    },
-                                    onClear: () {
-                                      setState(
-                                        () => selectedPeriodStatus = null,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) {
+                                  setState(() => selectedPeriodStatus = v);
+                                },
+                                onClear: () {
+                                  setState(() => selectedPeriodStatus = null);
+                                },
+                              ),
                             ),
-                          ],
 
                           if (!isPeriod) ...[
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: CustomDropdownField<String>(
-                                    label: "Trạng thái thu",
-                                    icon: Icons.payments_outlined,
-                                    value: selectedCollectionStatus,
-                                    items: collectionStatusOptions
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e.value,
-                                            child: Text(
-                                              e.label,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) {
-                                      setState(
-                                        () => selectedCollectionStatus = v,
-                                      );
-                                    },
-                                    onClear: () {
-                                      setState(
-                                        () => selectedCollectionStatus = null,
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: CustomDropdownField<String>(
-                                    label: "Gạch nợ",
-                                    icon: Icons.account_balance_wallet_outlined,
-                                    value: selectedDebtStatus,
-                                    items: debtStatusOptions
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e.value,
-                                            child: Text(
-                                              e.label,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                    onChanged: (v) {
-                                      setState(() => selectedDebtStatus = v);
-                                    },
-                                    onClear: () {
-                                      setState(() => selectedDebtStatus = null);
-                                    },
-                                  ),
-                                ),
-                              ],
+                            _responsiveTwoColumns(
+                              first: CustomDropdownField<String>(
+                                label: "Trạng thái thu",
+                                icon: Icons.payments_outlined,
+                                value: selectedCollectionStatus,
+                                items: collectionStatusOptions
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e.value,
+                                        child: Text(
+                                          e.label,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) {
+                                  setState(() => selectedCollectionStatus = v);
+                                },
+                                onClear: () {
+                                  setState(
+                                    () => selectedCollectionStatus = null,
+                                  );
+                                },
+                              ),
+                              second: CustomDropdownField<String>(
+                                label: "Gạch nợ",
+                                icon: Icons.account_balance_wallet_outlined,
+                                value: selectedDebtStatus,
+                                items: debtStatusOptions
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e.value,
+                                        child: Text(
+                                          e.label,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) {
+                                  setState(() => selectedDebtStatus = v);
+                                },
+                                onClear: () {
+                                  setState(() => selectedDebtStatus = null);
+                                },
+                              ),
                             ),
                             const SizedBox(height: 14),
 
@@ -336,7 +422,7 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                             TextField(
                               controller: searchController,
                               decoration: InputDecoration(
-                                hintText: "Tên KH / SĐT / Mã KH / Thuê bao",
+                                hintText: "Tên KH / SĐT/ Thuê bao/ Địa chỉ",
                                 hintStyle: const TextStyle(
                                   color: AppColors.textSecondary,
                                 ),
@@ -370,47 +456,7 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                           ],
 
                           const SizedBox(height: 18),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(
-                                      double.infinity,
-                                      54,
-                                    ),
-                                  ),
-                                  onPressed: resetFilter,
-                                  child: const Text("ĐẶT LẠI"),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: SizedBox(
-                                  height: 54,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryRed,
-                                    ),
-                                    onPressed: onSearch,
-                                    icon: const Icon(
-                                      Icons.search,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      "TÌM KIẾM",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _actionButtons(),
                         ],
                       ),
                     )

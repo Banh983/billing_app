@@ -46,11 +46,19 @@ class CustomDropdownField<T> extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
 
-        prefixIcon: Icon(icon, color: primaryRed),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 12, right: 8),
+          child: Icon(icon, size: 20, color: primaryRed),
+        ),
 
-        suffixIcon: value != null
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 40,
+          minHeight: 40,
+        ),
+
+        suffixIcon: value != null && onClear != null
             ? IconButton(
-                onPressed: onClear,
+                onPressed: enabled ? onClear : null,
                 icon: Icon(
                   Icons.close,
                   size: 18,
@@ -59,46 +67,58 @@ class CustomDropdownField<T> extends StatelessWidget {
               )
             : null,
 
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 40,
+          minHeight: 40,
+        ),
+
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+          horizontal: 14,
+          vertical: 10,
         ),
 
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
 
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
         ),
 
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: primaryRed, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primaryRed, width: 1.4),
+        ),
+
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
         ),
       ),
 
-      buttonStyleData: const ButtonStyleData(height: 58),
+      buttonStyleData: const ButtonStyleData(height: 48),
 
       iconStyleData: const IconStyleData(
-        icon: Icon(Icons.keyboard_arrow_down_rounded, color: primaryRed),
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          size: 22,
+          color: primaryRed,
+        ),
       ),
 
       dropdownStyleData: DropdownStyleData(
-        maxHeight: 250,
-
-        offset: const Offset(0, 8),
-
+        maxHeight: 180,
+        offset: const Offset(0, 6),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
         ),
       ),
 
-      menuItemStyleData: const MenuItemStyleData(height: 48),
+      menuItemStyleData: const MenuItemStyleData(height: 42),
     );
   }
 }

@@ -43,8 +43,10 @@ class WarningSection extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          BillingRecordDetailPage(recordId: recordId),
+                      builder: (_) => BillingRecordDetailPage(
+                        recordId: recordId,
+                        periodStatus: item["billingPeriodStatus"] ?? "OPEN",
+                      ),
                     ),
                   );
                 },

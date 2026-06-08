@@ -5,12 +5,14 @@ import '../../helpers/format_helper.dart';
 
 class BillingRecordCard extends StatelessWidget {
   final BillingRecordModel record;
+  final String periodStatus;
   final VoidCallback onTap;
   final Future<void> Function()? onMarkDebt;
 
   const BillingRecordCard({
     super.key,
     required this.record,
+    required this.periodStatus,
     required this.onTap,
     this.onMarkDebt,
   });
@@ -18,7 +20,12 @@ class BillingRecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(record);
-    final canMarkDebt = record.debtStatus == "CHUA_GACH_NO";
+    final isPeriodClosed = periodStatus == "CLOSED";
+
+    final canMarkDebt =
+        !isPeriodClosed &&
+        record.collectionStatus == "DA_THANH_TOAN" &&
+        record.debtStatus == "CHUA_GACH_NO";
 
     return GestureDetector(
       onTap: onTap,

@@ -20,6 +20,26 @@ class EmployeeProvider extends ChangeNotifier {
   String? actionMessage;
 
   // =========================
+  // PAGINATION
+  // =========================
+
+  int currentPage = 0;
+
+  int pageSize = 10;
+
+  int totalPages = 1;
+
+  int totalElements = 0;
+
+  String? keyword;
+
+  String? roleFilter;
+
+  bool get hasNextPage => currentPage + 1 < totalPages;
+
+  bool get hasPreviousPage => currentPage > 0;
+
+  // =========================
   // LOADING
   // =========================
 
@@ -51,22 +71,92 @@ class EmployeeProvider extends ChangeNotifier {
   // FETCH
   // =========================
 
-  Future<void> fetchEmployees() async {
+  Future<void> fetchEmployees({
+    int page = 0,
+    String? keywordValue,
+    String? roleValue,
+  }) async {
     _setLoading(true);
 
     error = null;
 
     try {
-      final result = await service.getAll();
+      keyword = keywordValue;
+      roleFilter = roleValue;
 
-      employees = result.where((e) => e.role == "CONSULTANT").toList();
+      final result = await service.getAll(
+        page: page,
+        size: pageSize,
+        keyword: keyword,
+        role: roleFilter,
+      );
+
+      employees = result.employees;
+
+      currentPage = result.currentPage;
+
+      pageSize = result.pageSize;
+
+      totalPages = result.totalPages;
+
+      totalElements = result.totalElements;
     } catch (e) {
       error = _parseError(e);
 
       employees = [];
+
+      currentPage = 0;
+
+      totalPages = 1;
+
+      totalElements = 0;
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> nextPage() async {
+    if (!hasNextPage) return;
+
+    await fetchEmployees(
+      page: currentPage + 1,
+      keywordValue: keyword,
+      roleValue: roleFilter,
+    );
+  }
+
+  Future<void> previousPage() async {
+    if (!hasPreviousPage) return;
+
+    await fetchEmployees(
+      page: currentPage - 1,
+      keywordValue: keyword,
+      roleValue: roleFilter,
+    );
+  }
+
+  Future<void> refreshEmployees() async {
+    await fetchEmployees(
+      page: currentPage,
+      keywordValue: keyword,
+      roleValue: roleFilter,
+    );
+  }
+
+  Future<void> resetAndFetchEmployees() async {
+    await fetchEmployees(page: 0, keywordValue: keyword, roleValue: roleFilter);
+  }
+
+  Future<void> goToPage(int page) async {
+    if (page < 0 || page >= totalPages) {
+      return;
+    }
+
+    await fetchEmployees(
+      page: page,
+      keywordValue: keyword,
+      roleValue: roleFilter,
+    );
   }
 
   // =========================
@@ -109,11 +199,15 @@ class EmployeeProvider extends ChangeNotifier {
         return phoneError;
       }
 
-      final newEmp = await service.create(emp, password);
+      await service.create(emp, password);
 
-      employees.insert(0, newEmp);
+      await fetchEmployees(
+        page: 0,
+        keywordValue: keyword,
+        roleValue: roleFilter,
+      );
 
-      const msg = "Cập nhật thông tin thành công";
+      const msg = "Thêm nhân viên thành công";
 
       actionMessage = msg;
 
@@ -160,7 +254,7 @@ class EmployeeProvider extends ChangeNotifier {
         );
       }
 
-      await fetchEmployees();
+      await refreshEmployees();
 
       final updatedWithStatus = updated.copyWith(
         status: emp.status ?? updated.status,
@@ -181,6 +275,7 @@ class EmployeeProvider extends ChangeNotifier {
       _setActionLoading(false);
     }
   }
+
   // =========================
   // DELETE
   // =========================
@@ -193,7 +288,15 @@ class EmployeeProvider extends ChangeNotifier {
     try {
       await service.delete(id);
 
-      employees.removeWhere((e) => e.id == id);
+      if (employees.length == 1 && currentPage > 0) {
+        await fetchEmployees(
+          page: currentPage - 1,
+          keywordValue: keyword,
+          roleValue: roleFilter,
+        );
+      } else {
+        await refreshEmployees();
+      }
 
       const msg = "Đã xoá nhân viên";
 
@@ -232,13 +335,49 @@ class EmployeeProvider extends ChangeNotifier {
         );
       }
 
-      await fetchEmployees();
+      await refreshEmployees();
 
       const msg = "Cập nhật thông tin thành công";
 
       actionMessage = msg;
 
       return ApiResult.success(message: msg, statusCode: res.statusCode);
+    } catch (e) {
+      final msg = _parseError(e);
+
+      error = msg;
+
+      return ApiResult.error(message: msg);
+    } finally {
+      _setActionLoading(false);
+    }
+  }
+
+  // =========================
+  // UPDATE ME
+  // =========================
+
+  Future<ApiResult<Employee>> updateMe(Employee emp) async {
+    _setActionLoading(true);
+
+    _resetActionState();
+
+    try {
+      final phoneError = _validatePhone(emp.phone);
+
+      if (phoneError != null) {
+        error = phoneError.message;
+
+        return ApiResult.error(message: phoneError.message);
+      }
+
+      final updated = await service.updateMe(emp);
+
+      const msg = "Cập nhật thông tin thành công";
+
+      actionMessage = msg;
+
+      return ApiResult.success(data: updated, message: msg);
     } catch (e) {
       final msg = _parseError(e);
 

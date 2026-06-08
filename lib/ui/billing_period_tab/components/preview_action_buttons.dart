@@ -10,6 +10,7 @@ class PreviewActionButtons extends StatelessWidget {
   final VoidCallback onPrint;
   final VoidCallback onShare;
   final VoidCallback onSave;
+  final bool showPrintButton;
 
   const PreviewActionButtons({
     super.key,
@@ -20,6 +21,7 @@ class PreviewActionButtons extends StatelessWidget {
     required this.onPrint,
     required this.onShare,
     required this.onSave,
+    required this.showPrintButton,
   });
 
   @override
@@ -31,7 +33,9 @@ class PreviewActionButtons extends StatelessWidget {
           final isSmall = constraints.maxWidth < 390;
           final itemWidth = isSmall
               ? (constraints.maxWidth - 10) / 2
-              : (constraints.maxWidth - 20) / 3;
+              : showPrintButton
+              ? (constraints.maxWidth - 20) / 3
+              : (constraints.maxWidth - 10) / 2;
 
           return Wrap(
             spacing: 10,
@@ -56,14 +60,15 @@ class PreviewActionButtons extends StatelessWidget {
                 onPressed: isSharing ? null : onShare,
               ),
 
-              _ActionButton(
-                width: isSmall ? constraints.maxWidth : itemWidth,
-                label: isPrinting ? "Đang in..." : "In phiếu",
-                icon: isPrinting ? null : Icons.print_rounded,
-                color: AppColors.primaryRed,
-                isLoading: isPrinting,
-                onPressed: isPrinting ? null : onPrint,
-              ),
+              if (showPrintButton)
+                _ActionButton(
+                  width: isSmall ? constraints.maxWidth : itemWidth,
+                  label: isPrinting ? "Đang in..." : "In phiếu",
+                  icon: isPrinting ? null : Icons.print_rounded,
+                  color: AppColors.primaryRed,
+                  isLoading: isPrinting,
+                  onPressed: isPrinting ? null : onPrint,
+                ),
             ],
           );
         },

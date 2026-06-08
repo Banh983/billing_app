@@ -82,6 +82,107 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
     widget.onReset();
   }
 
+  Widget _responsiveTwoColumns({
+    required Widget first,
+    required Widget second,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 430;
+
+        final itemWidth = isSmall
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 12) / 2;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 14,
+          children: [
+            SizedBox(width: itemWidth, child: first),
+            SizedBox(width: itemWidth, child: second),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _actionButtons() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmall = constraints.maxWidth < 360;
+
+        if (isSmall) {
+          return Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: _resetFilter,
+                  child: const Text("ĐẶT LẠI"),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                  ),
+                  onPressed: _onSearch,
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  label: const Text(
+                    "TÌM KIẾM",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 54),
+                ),
+                onPressed: _resetFilter,
+                child: const Text("ĐẶT LẠI"),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                  ),
+                  onPressed: _onSearch,
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  label: const Text(
+                    "TÌM KIẾM",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -121,10 +222,12 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
                   const Expanded(
                     child: Text(
                       "Bộ lọc lịch sử thu cước",
+                      maxLines: 3,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   AnimatedRotation(
@@ -146,74 +249,65 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                       child: Column(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: CustomDropdownField<String>(
-                                  label: "Gạch nợ",
-                                  icon: Icons.account_balance_wallet_outlined,
-                                  value: selectedDebtStatus,
-                                  items: debtStatusOptions
-                                      .map(
-                                        (e) => DropdownMenuItem(
-                                          value: e.value,
-                                          child: Text(
-                                            e.label,
-                                            overflow: TextOverflow.ellipsis,
+                          _responsiveTwoColumns(
+                            first: CustomDropdownField<String>(
+                              label: "Gạch nợ",
+                              icon: Icons.account_balance_wallet_outlined,
+                              value: selectedDebtStatus,
+                              items: debtStatusOptions
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e.value,
+                                      child: Text(
+                                        e.label,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                setState(() => selectedDebtStatus = v);
+                              },
+                              onClear: () {
+                                setState(() => selectedDebtStatus = null);
+                              },
+                            ),
+                            second: InkWell(
+                              onTap: _pickBillPrintedDate,
+                              borderRadius: BorderRadius.circular(18),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: "Ngày thu",
+                                  prefixIcon: const Icon(
+                                    Icons.event_available,
+                                    color: AppColors.primaryRed,
+                                  ),
+                                  suffixIcon: selectedBillPrintedDate == null
+                                      ? null
+                                      : IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedBillPrintedDate = null;
+                                            });
+                                          },
+                                          icon: const Icon(
+                                            Icons.close,
+                                            size: 18,
                                           ),
                                         ),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    setState(() => selectedDebtStatus = v);
-                                  },
-                                  onClear: () {
-                                    setState(() => selectedDebtStatus = null);
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: _pickBillPrintedDate,
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: InputDecorator(
-                                    decoration: InputDecoration(
-                                      labelText: "Ngày thu",
-                                      prefixIcon: const Icon(
-                                        Icons.event_available,
-                                        color: AppColors.primaryRed,
-                                      ),
-                                      suffixIcon:
-                                          selectedBillPrintedDate == null
-                                          ? null
-                                          : IconButton(
-                                              onPressed: () {
-                                                setState(() {
-                                                  selectedBillPrintedDate =
-                                                      null;
-                                                });
-                                              },
-                                              icon: const Icon(
-                                                Icons.close,
-                                                size: 18,
-                                              ),
-                                            ),
-                                      filled: true,
-                                      fillColor: AppColors.background,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(18),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      selectedBillPrintedDate ?? "Chọn ngày",
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  filled: true,
+                                  fillColor: AppColors.background,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                    borderSide: BorderSide.none,
                                   ),
                                 ),
+                                child: Text(
+                                  selectedBillPrintedDate ?? "Chọn ngày",
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ],
+                            ),
                           ),
 
                           const SizedBox(height: 14),
@@ -223,7 +317,7 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
                             textInputAction: TextInputAction.search,
                             onSubmitted: (_) => _onSearch(),
                             decoration: InputDecoration(
-                              hintText: "Tên KH / SĐT / Mã KH / Thuê bao",
+                              hintText: "Tên KH / SĐT/ Thuê bao/ Địa chỉ",
                               hintStyle: const TextStyle(
                                 color: AppColors.textSecondary,
                               ),
@@ -257,46 +351,7 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
 
                           const SizedBox(height: 18),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(
-                                      double.infinity,
-                                      54,
-                                    ),
-                                  ),
-                                  onPressed: _resetFilter,
-                                  child: const Text("ĐẶT LẠI"),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: SizedBox(
-                                  height: 54,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryRed,
-                                    ),
-                                    onPressed: _onSearch,
-                                    icon: const Icon(
-                                      Icons.search,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      "TÌM KIẾM",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _actionButtons(),
                         ],
                       ),
                     )

@@ -6,11 +6,13 @@ import '../../helpers/custom_dropdown_field.dart';
 class MonthYearFilter extends StatelessWidget {
   final DashboardProvider provider;
   final String token;
+  final String role;
 
   const MonthYearFilter({
     super.key,
     required this.provider,
     required this.token,
+    required this.role,
   });
 
   @override
@@ -48,6 +50,7 @@ class MonthYearFilter extends StatelessWidget {
 
                   provider.fetchDashboard(
                     token: token,
+                    role: role,
                     month: value,
                     year: provider.selectedYear,
                   );
@@ -73,6 +76,7 @@ class MonthYearFilter extends StatelessWidget {
 
                   provider.fetchDashboard(
                     token: token,
+                    role: role,
                     month: provider.selectedMonth,
                     year: value,
                   );

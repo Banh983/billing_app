@@ -302,6 +302,7 @@ class BillingRecordPrintController extends ChangeNotifier {
     required BillingRecordProvider provider,
     required int recordId,
     required Uint8List receiptImageBytes,
+    required bool shouldUpdateDatabase,
   }) async {
     if (selectedPrinter == null) {
       throw Exception("Chưa chọn máy in. Vui lòng chọn máy in trước.");
@@ -328,7 +329,7 @@ class BillingRecordPrintController extends ChangeNotifier {
         throw Exception("Không tìm thấy hóa đơn.");
       }
 
-      if (record.collectionStatus == "CHUA_THU") {
+      if (shouldUpdateDatabase && record.collectionStatus == "CHUA_THU") {
         await _recordPrintService.printBill(
           recordId: recordId,
           collectedAmount: record.amountDue,
@@ -361,6 +362,7 @@ class BillingRecordPrintController extends ChangeNotifier {
     required BuildContext context,
     required BillingRecordProvider provider,
     required int recordId,
+    required bool shouldUpdateDatabase,
   }) async {
     if (isOpeningPreview) return;
 
@@ -401,6 +403,7 @@ class BillingRecordPrintController extends ChangeNotifier {
             printerName: selectedPrinter?.name ?? "Chưa chọn máy in",
             paperSizeLabel: paperSize == PaperSizeType.mm58 ? "58mm" : "80mm",
             hasSelectedPrinter: selectedPrinter != null,
+            showPrintButton: shouldUpdateDatabase,
             onSelectPrinter: () async {
               await selectPrinter(context);
               return selectedPrinter?.name;
@@ -411,6 +414,7 @@ class BillingRecordPrintController extends ChangeNotifier {
                 provider: provider,
                 recordId: recordId,
                 receiptImageBytes: receiptImageBytes,
+                shouldUpdateDatabase: shouldUpdateDatabase,
               );
 
               if (context.mounted) {

@@ -19,20 +19,38 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  bool _canViewManagerDashboard(String role) {
+    final normalizedRole = role.trim().toUpperCase();
+
+    return normalizedRole == "MANAGER" || normalizedRole == "ADMIN";
+  }
+
   @override
   void initState() {
     super.initState();
 
     Future.microtask(() {
-      final token = context.read<AuthProvider>().token ?? "";
-      context.read<DashboardProvider>().fetchDashboard(token: token);
+      final auth = context.read<AuthProvider>();
+
+      final token = auth.token ?? "";
+      final role = auth.user?.role ?? "";
+
+      context.read<DashboardProvider>().fetchDashboard(
+        token: token,
+        role: role,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardProvider>();
-    final token = context.read<AuthProvider>().token ?? "";
+
+    final auth = context.read<AuthProvider>();
+    final token = auth.token ?? "";
+    final role = auth.user?.role ?? "";
+
+    final canViewManagerDashboard = _canViewManagerDashboard(role);
 
     return Scaffold(
       backgroundColor: const Color(0xfff5f5f5),
@@ -51,11 +69,11 @@ class _DashboardPageState extends State<DashboardPage> {
           ? ErrorView(
               message: provider.error!,
               onRetry: () {
-                provider.refresh(token);
+                provider.refresh(token, role);
               },
             )
           : RefreshIndicator(
-              onRefresh: () => provider.refresh(token),
+              onRefresh: () => provider.refresh(token, role),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = constraints.maxWidth < 380
@@ -65,21 +83,27 @@ class _DashboardPageState extends State<DashboardPage> {
                   return ListView(
                     padding: EdgeInsets.all(horizontalPadding),
                     children: [
-                      MonthYearFilter(provider: provider, token: token),
+                      MonthYearFilter(
+                        provider: provider,
+                        token: token,
+                        role: role,
+                      ),
 
                       const SizedBox(height: 16),
 
                       if (provider.overview != null)
                         OverviewSection(overview: provider.overview!),
 
-                      const SizedBox(height: 16),
-                      ConsultantSection(consultants: provider.consultants),
+                      if (canViewManagerDashboard) ...[
+                        const SizedBox(height: 16),
+                        ConsultantSection(consultants: provider.consultants),
 
-                      const SizedBox(height: 16),
-                      DailyStatsSection(stats: provider.dailyStats),
+                        const SizedBox(height: 16),
+                        DailyStatsSection(stats: provider.dailyStats),
 
-                      const SizedBox(height: 16),
-                      WarningSection(warnings: provider.warnings),
+                        const SizedBox(height: 16),
+                        WarningSection(warnings: provider.warnings),
+                      ],
                     ],
                   );
                 },

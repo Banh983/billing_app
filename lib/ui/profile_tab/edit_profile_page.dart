@@ -90,6 +90,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            Center(
+              child: Image.asset(
+                "assets/images/profile_edit.png",
+                height: 280,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            const SizedBox(height: 20),
             CustomInputField(
               controller: nameController,
               label: "Họ tên",

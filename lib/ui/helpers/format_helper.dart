@@ -146,4 +146,25 @@ class FormatHelper {
 
     return count > max ? "$max+" : count.toString();
   }
+
+  // =========================
+  // BILLING PERIOD STATUS
+  // =========================
+
+  static String formatBillingPeriodStatus(dynamic status) {
+    if (status == null || status.toString().trim().isEmpty) {
+      return "Không có dữ liệu";
+    }
+
+    switch (status.toString().toUpperCase()) {
+      case "OPEN":
+        return "Đang mở";
+
+      case "CLOSED":
+        return "Đã đóng";
+
+      default:
+        return status.toString();
+    }
+  }
 }

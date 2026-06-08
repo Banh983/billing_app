@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:billing_app/models/api_result.dart';
+import 'package:billing_app/models/employee_page_result.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/employee.dart';
@@ -21,9 +22,25 @@ class EmployeeService {
   // GET ALL
   // =========================
 
-  Future<List<Employee>> getAll() async {
-    final res = await http.get(Uri.parse("$baseUrl/users"), headers: headers);
+  Future<EmployeePageResult> getAll({
+    int page = 0,
+    int size = 10,
+    String? keyword,
+    String? role,
+  }) async {
+    final uri = Uri.parse("$baseUrl/users").replace(
+      queryParameters: {
+        "page": page.toString(),
+        "size": size.toString(),
+        if (keyword != null && keyword.trim().isNotEmpty)
+          "keyword": keyword.trim(),
+        if (role != null && role.trim().isNotEmpty) "role": role.trim(),
+      },
+    );
 
+    final res = await http.get(uri, headers: headers);
+
+    print("GET EMPLOYEES URL: $uri");
     print("GET STATUS: ${res.statusCode}");
     print("GET BODY: ${res.body}");
 
@@ -33,12 +50,8 @@ class EmployeeService {
 
     final json = jsonDecode(res.body);
 
-    final data = json["data"]?["content"] ?? json["data"] ?? [];
-
-    return data.map<Employee>((e) => Employee.fromJson(e)).toList();
-  }
-
-  // =========================
+    return EmployeePageResult.fromJson(json);
+  } // =========================
   // CREATE
   // =========================
 
@@ -152,5 +165,28 @@ class EmployeeService {
 
       throw Exception(json["message"] ?? "Delete failed");
     }
+  }
+
+  Future<Employee> updateMe(Employee emp) async {
+    final body = {"fullName": emp.fullName.trim(), "phone": emp.phone?.trim()}
+      ..removeWhere((k, v) => v == null);
+
+    final res = await http.put(
+      Uri.parse("$baseUrl/users/me"),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    print("UPDATE ME REQUEST: ${jsonEncode(body)}");
+    print("UPDATE ME STATUS: ${res.statusCode}");
+    print("UPDATE ME BODY: ${res.body}");
+
+    final json = jsonDecode(res.body);
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception(json["message"] ?? "Update profile failed");
+    }
+
+    return Employee.fromJson(json["data"] ?? json);
   }
 }

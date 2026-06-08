@@ -34,6 +34,7 @@ class _EmployeePageState extends State<EmployeePage> {
   @override
   void dispose() {
     searchController.dispose();
+
     super.dispose();
   }
 
@@ -78,16 +79,16 @@ class _EmployeePageState extends State<EmployeePage> {
         result.password!,
       );
 
+      if (!mounted) return;
+
       _showToast(addRes.success, addRes.message ?? "", provider);
     } else {
       final updateRes = await provider.updateEmployee(emp.id!, result.employee);
 
+      if (!mounted) return;
+
       _showToast(updateRes.success, updateRes.message ?? "", provider);
     }
-
-    if (!mounted) return;
-
-    await provider.fetchEmployees();
   }
 
   Future<void> _deleteEmployee(Employee employee) async {
@@ -136,27 +137,31 @@ class _EmployeePageState extends State<EmployeePage> {
     }
   }
 
+  Future<void> _search(String value) async {
+    keyword = value.trim();
+
+    await context.read<EmployeeProvider>().fetchEmployees(
+      page: 0,
+      keywordValue: keyword,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<EmployeeProvider>(
       builder: (context, p, _) {
-        final filteredEmployees = p.employees.where((e) {
-          final q = keyword.toLowerCase();
-
-          return e.fullName.toLowerCase().contains(q) ||
-              e.username.toLowerCase().contains(q) ||
-              (e.phone ?? "").toLowerCase().contains(q);
-        }).toList();
-
         return Scaffold(
-          appBar: AppBar(title: const Text("Quản lý nhân viên")),
-
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              _openForm();
-            },
-            icon: const Icon(Icons.add),
-            label: const Text("Thêm"),
+          appBar: AppBar(
+            title: const Text("Quản lý nhân viên"),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  _openForm();
+                },
+                icon: const Icon(Icons.add),
+                tooltip: "Thêm nhân viên",
+              ),
+            ],
           ),
 
           body: Stack(
@@ -165,20 +170,16 @@ class _EmployeePageState extends State<EmployeePage> {
                 children: [
                   EmployeeSearchBar(
                     controller: searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        keyword = value.trim();
-                      });
-                    },
+                    onChanged: _search,
                   ),
 
                   Expanded(
                     child: p.loading
                         ? const Center(child: CircularProgressIndicator())
-                        : filteredEmployees.isEmpty
+                        : p.employees.isEmpty
                         ? const EmptyState()
                         : EmployeeList(
-                            employees: filteredEmployees,
+                            employees: p.employees,
                             onEdit: (e) {
                               _openForm(emp: e);
                             },
@@ -187,6 +188,8 @@ class _EmployeePageState extends State<EmployeePage> {
                             },
                           ),
                   ),
+
+                  _EmployeePaginationBar(provider: p),
                 ],
               ),
 
@@ -199,6 +202,108 @@ class _EmployeePageState extends State<EmployeePage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _EmployeePaginationBar extends StatelessWidget {
+  final EmployeeProvider provider;
+
+  const _EmployeePaginationBar({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    if (provider.totalPages <= 1) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: provider.hasPreviousPage
+                  ? provider.previousPage
+                  : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+
+            ..._buildPages(context),
+
+            IconButton(
+              onPressed: provider.hasNextPage ? provider.nextPage : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPages(BuildContext context) {
+    final current = provider.currentPage + 1;
+    final total = provider.totalPages;
+
+    List<Widget> widgets = [];
+
+    for (int page = 1; page <= total; page++) {
+      if (page == 1 ||
+          page == total ||
+          (page >= current - 1 && page <= current + 1)) {
+        widgets.add(_pageButton(page));
+      } else if (page == current - 2 || page == current + 2) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text("..."),
+          ),
+        );
+      }
+    }
+
+    return widgets;
+  }
+
+  Widget _pageButton(int page) {
+    final selected = page == provider.currentPage + 1;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          provider.goToPage(page - 1);
+        },
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFE53935) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            page.toString(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: selected ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

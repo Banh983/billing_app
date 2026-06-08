@@ -136,7 +136,11 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         useInheritedMediaQuery: true,
         locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
+        builder: (context, child) {
+          child = DevicePreview.appBuilder(context, child);
+
+          return SafeArea(child: child);
+        },
         debugShowCheckedModeBanner: false,
         home: const LoginPage(),
       ),

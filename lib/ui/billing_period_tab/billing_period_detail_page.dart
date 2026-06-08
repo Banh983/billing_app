@@ -99,69 +99,76 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      body: Column(
-        children: [
-          BillingFilterCard(
-            type: BillingFilterType.record,
-            periodId: widget.period.id,
-          ),
-          Expanded(
-            child: Consumer<BillingRecordProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && provider.records.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: Consumer<BillingRecordProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && provider.records.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                if (provider.error != null && provider.records.isEmpty) {
-                  return Center(child: Text(provider.error!));
-                }
+          if (provider.error != null && provider.records.isEmpty) {
+            return Center(child: Text(provider.error!));
+          }
 
-                if (provider.records.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: _refreshRecords,
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(height: 160),
-                        Center(child: Text("Không tìm thấy hóa đơn phù hợp")),
-                      ],
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: _refreshRecords,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: provider.records.length,
-                    itemBuilder: (context, index) {
-                      final record = provider.records[index];
-
-                      return BillingRecordCard(
-                        record: record,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  BillingRecordDetailPage(recordId: record.id),
-                            ),
-                          );
-                        },
-                        onMarkDebt: () async {
-                          _showConfirmMarkDebtDialog(
-                            recordId: record.id,
-                            customerName: record.customerName,
-                          );
-                        },
-                      );
-                    },
+          return RefreshIndicator(
+            onRefresh: _refreshRecords,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: BillingFilterCard(
+                    type: BillingFilterType.record,
+                    periodId: widget.period.id,
                   ),
-                );
-              },
+                ),
+
+                if (provider.records.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text("Không tìm thấy hóa đơn phù hợp"),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final record = provider.records[index];
+
+                        return BillingRecordCard(
+                          record: record,
+                          periodStatus: widget.period.status,
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BillingRecordDetailPage(
+                                  recordId: record.id,
+                                  periodStatus: widget.period.status,
+                                ),
+                              ),
+                            );
+
+                            if (!mounted) return;
+
+                            await _refreshRecords();
+                          },
+                          onMarkDebt: () async {
+                            _showConfirmMarkDebtDialog(
+                              recordId: record.id,
+                              customerName: record.customerName,
+                            );
+                          },
+                        );
+                      }, childCount: provider.records.length),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

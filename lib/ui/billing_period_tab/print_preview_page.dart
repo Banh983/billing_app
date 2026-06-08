@@ -25,6 +25,8 @@ class PrintPreviewPage extends StatefulWidget {
   final bool hasSelectedPrinter;
   final Future<String?> Function() onSelectPrinter;
   final Future<void> Function(Uint8List receiptImageBytes) onConfirm;
+  final bool showPrintButton;
+  
 
   const PrintPreviewPage({
     super.key,
@@ -36,6 +38,7 @@ class PrintPreviewPage extends StatefulWidget {
     required this.hasSelectedPrinter,
     required this.onSelectPrinter,
     required this.onConfirm,
+    this.showPrintButton = true,
   });
 
   @override
@@ -263,6 +266,7 @@ class _PrintPreviewPageState extends State<PrintPreviewPage> {
                 isPrinting: _isPrinting,
                 isSharing: _isSharing,
                 isSaving: _isSaving,
+                showPrintButton: widget.showPrintButton,
                 onPrint: _handlePrint,
                 onShare: _handleShareImage,
                 onSave: _handleSaveImage,

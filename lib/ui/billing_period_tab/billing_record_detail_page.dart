@@ -14,8 +14,13 @@ import '../../core/app_colors.dart';
 
 class BillingRecordDetailPage extends StatefulWidget {
   final int recordId;
+  final String periodStatus;
 
-  const BillingRecordDetailPage({super.key, required this.recordId});
+  const BillingRecordDetailPage({
+    super.key,
+    required this.recordId,
+    required this.periodStatus,
+  });
 
   @override
   State<BillingRecordDetailPage> createState() =>
@@ -25,6 +30,8 @@ class BillingRecordDetailPage extends StatefulWidget {
 class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
     with WidgetsBindingObserver {
   late final BillingRecordPrintController _printController;
+
+  bool get isPeriodClosed => widget.periodStatus == "CLOSED";
 
   @override
   void initState() {
@@ -54,6 +61,11 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
   }
 
   Future<void> _markDebt(BillingRecordProvider provider) async {
+    if (isPeriodClosed) {
+      ToastUtils.error(context, message: "Kỳ cước đã đóng, không thể gạch nợ");
+      return;
+    }
+
     final record = provider.selectedRecord;
 
     if (record == null) return;
@@ -75,6 +87,11 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
   }
 
   void _showConfirmMarkDebtDialog(BillingRecordProvider provider) {
+    if (isPeriodClosed) {
+      ToastUtils.error(context, message: "Kỳ cước đã đóng, không thể gạch nợ");
+      return;
+    }
+
     final record = provider.selectedRecord;
 
     if (record == null) return;
@@ -117,6 +134,16 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
             backgroundColor: AppColors.primaryRed,
             foregroundColor: Colors.white,
             title: const Text("Chi tiết hóa đơn"),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () async {
+                  await context.read<BillingRecordProvider>().refresh(
+                    widget.recordId,
+                  );
+                },
+              ),
+            ],
           ),
           body: Consumer<BillingRecordProvider>(
             builder: (context, provider, child) {
@@ -129,6 +156,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
               final bool isUnpaid = record.collectionStatus == "CHUA_THU";
 
               final bool canMarkDebt =
+                  !isPeriodClosed &&
                   record.collectionStatus == "DA_THANH_TOAN" &&
                   record.debtStatus == "CHUA_GACH_NO";
 
@@ -163,6 +191,7 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
                           context: context,
                           provider: provider,
                           recordId: widget.recordId,
+                          shouldUpdateDatabase: !isPeriodClosed,
                         );
                       },
                       onMarkDebt: () {

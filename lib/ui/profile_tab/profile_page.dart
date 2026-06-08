@@ -72,15 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (updatedData == null) return;
 
-    if (updatedData.id == null) {
-      ToastUtils.error(context, message: "Không tìm thấy ID tài khoản");
-      return;
-    }
-
-    final result = await context.read<EmployeeProvider>().updateEmployee(
-      updatedData.id!,
-      updatedData,
-    );
+    final result = await context.read<EmployeeProvider>().updateMe(updatedData);
 
     if (!mounted) return;
 
