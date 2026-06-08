@@ -152,7 +152,12 @@ class _EmployeePageState extends State<EmployeePage> {
       builder: (context, p, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text("Quản lý nhân viên"),
+            title: const Text(
+              "Quản lý nhân viên",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
             actions: [
               IconButton(
                 onPressed: () {

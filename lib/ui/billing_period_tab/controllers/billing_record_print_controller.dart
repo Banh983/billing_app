@@ -8,6 +8,8 @@ import 'package:billing_app/services/record_print_service.dart';
 import 'package:billing_app/services/store_config_service.dart';
 import 'package:billing_app/ui/billing_period_tab/components/printer_settings_card.dart';
 import 'package:billing_app/ui/billing_period_tab/print_preview_page.dart';
+import 'package:billing_app/ui/dialog/bluetooth_enable_dialog.dart';
+import 'package:billing_app/ui/dialog/confirm_action_dialog.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -50,28 +52,24 @@ class BillingRecordPrintController extends ChangeNotifier {
 
     if (!context.mounted) return false;
 
-    final bool openSettings =
-        await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Cần quyền Bluetooth"),
-            content: const Text(
-              "Ứng dụng cần quyền Bluetooth để tìm và kết nối máy in. "
-              "Vui lòng cấp quyền để tiếp tục.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Để sau"),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text("Mở cài đặt"),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    bool openSettings = false;
+
+    await showDialog(
+      context: context,
+      builder: (_) => ConfirmActionDialog(
+        title: "Cần quyền Bluetooth",
+        message:
+            "Ứng dụng cần quyền Bluetooth để tìm và kết nối máy in.\n\nVui lòng cấp quyền để tiếp tục.",
+        cancelText: "Để sau",
+        confirmText: "Mở cài đặt",
+        confirmColor: Colors.red,
+        icon: Icons.bluetooth_disabled_outlined,
+        iconColor: Colors.red,
+        onConfirm: () {
+          openSettings = true;
+        },
+      ),
+    );
 
     if (openSettings) {
       await openAppSettings();
@@ -87,28 +85,24 @@ class BillingRecordPrintController extends ChangeNotifier {
 
     if (!context.mounted) return false;
 
-    final bool openBluetoothSettings =
-        await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Bật Bluetooth"),
-            content: const Text(
-              "Bluetooth đang tắt. Vui lòng bật Bluetooth để chọn và kết nối máy in.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text("Hủy"),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context, true),
-                icon: const Icon(Icons.bluetooth),
-                label: const Text("Bật Bluetooth"),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    bool openBluetoothSettings = false;
+
+    await showDialog(
+      context: context,
+      builder: (_) => ConfirmActionDialog(
+        title: "Bật Bluetooth",
+        message:
+            "Bluetooth hiện đang tắt.\n\nVui lòng bật Bluetooth để chọn và kết nối máy in.",
+        cancelText: "Hủy",
+        confirmText: "Bật Bluetooth",
+        confirmColor: Colors.blue,
+        icon: Icons.bluetooth,
+        iconColor: Colors.blue,
+        onConfirm: () {
+          openBluetoothSettings = true;
+        },
+      ),
+    );
 
     if (!openBluetoothSettings) return false;
 

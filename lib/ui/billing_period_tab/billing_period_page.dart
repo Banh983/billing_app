@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/billing_period_model.dart';
 import '../../provider/billing_period_provider.dart';
+import '../dialog/confirm_action_dialog.dart';
 import 'billing_period_detail_page.dart';
 
 import 'components/billing_filter_card.dart';
@@ -46,43 +47,39 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
     BillingPeriodProvider provider,
     int periodId,
   ) async {
-    final confirm = await showDialog<bool>(
+    showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Đóng kỳ cước"),
-        content: const Text(
-          "Bạn có chắc muốn đóng kỳ cước này?\n\nSau khi đóng sẽ không thể tiếp tục thu cước.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Hủy"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Đóng kỳ"),
-          ),
-        ],
+      builder: (_) => ConfirmActionDialog(
+        title: "Đóng kỳ cước",
+        message:
+            "Bạn có chắc muốn đóng kỳ cước này?\n\nSau khi đóng sẽ không thể tiếp tục thu cước.",
+        cancelText: "Hủy",
+        confirmText: "Đóng kỳ",
+        confirmColor: Colors.red,
+        icon: Icons.lock_outline,
+        iconColor: Colors.red,
+        onConfirm: () async {
+          try {
+            await provider.closePeriod(periodId);
+
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Đóng kỳ cước thành công")),
+            );
+          } catch (e) {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.toString()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
       ),
     );
-
-    if (confirm != true) return;
-
-    try {
-      await provider.closePeriod(periodId);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Đóng kỳ cước thành công")));
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
   }
 
   @override
@@ -94,7 +91,7 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
         title: const Text(
-          "Kỳ cước",
+          "Danh sách kỳ cước",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

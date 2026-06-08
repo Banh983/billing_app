@@ -131,9 +131,12 @@ class _BillingRecordDetailPageState extends State<BillingRecordDetailPage>
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.primaryRed,
+            backgroundColor: Colors.red,
             foregroundColor: Colors.white,
-            title: const Text("Chi tiết hóa đơn"),
+            title: const Text(
+              "Chi tiết hóa đơn",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh),

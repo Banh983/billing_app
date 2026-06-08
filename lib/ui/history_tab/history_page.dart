@@ -61,50 +61,62 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        HistoryFilterCard(onFilter: _applyFilter, onReset: _resetFilter),
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        title: const Text(
+          "Lịch sử thu cước",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
 
-        Expanded(
-          child: Consumer<BillingRecordProvider>(
-            builder: (context, provider, child) {
-              if (provider.isLoading && provider.records.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: Column(
+        children: [
+          HistoryFilterCard(onFilter: _applyFilter, onReset: _resetFilter),
 
-              if (provider.error != null && provider.records.isEmpty) {
-                return Center(child: Text(provider.error!));
-              }
+          Expanded(
+            child: Consumer<BillingRecordProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.records.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (provider.records.isEmpty) {
+                if (provider.error != null && provider.records.isEmpty) {
+                  return Center(child: Text(provider.error!));
+                }
+
+                if (provider.records.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 140),
+                        Center(child: Text("Chưa có lịch sử thu cước")),
+                      ],
+                    ),
+                  );
+                }
+
                 return RefreshIndicator(
                   onRefresh: _refresh,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(height: 140),
-                      Center(child: Text("Chưa có lịch sử thu cước")),
-                    ],
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: provider.records.length,
+                    itemBuilder: (context, index) {
+                      final record = provider.records[index];
+
+                      return HistoryCard(record: record);
+                    },
                   ),
                 );
-              }
-
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: provider.records.length,
-                  itemBuilder: (context, index) {
-                    final record = provider.records[index];
-
-                    return HistoryCard(record: record);
-                  },
-                ),
-              );
-            },
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
