@@ -25,7 +25,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
     Future.microtask(() {
       final token = context.read<AuthProvider>().token ?? "";
-
       context.read<DashboardProvider>().fetchDashboard(token: token);
     });
   }
@@ -57,24 +56,33 @@ class _DashboardPageState extends State<DashboardPage> {
             )
           : RefreshIndicator(
               onRefresh: () => provider.refresh(token),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  MonthYearFilter(provider: provider, token: token),
-                  const SizedBox(height: 16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final horizontalPadding = constraints.maxWidth < 380
+                      ? 12.0
+                      : 16.0;
 
-                  if (provider.overview != null)
-                    OverviewSection(overview: provider.overview!),
+                  return ListView(
+                    padding: EdgeInsets.all(horizontalPadding),
+                    children: [
+                      MonthYearFilter(provider: provider, token: token),
 
-                  const SizedBox(height: 16),
-                  ConsultantSection(consultants: provider.consultants),
+                      const SizedBox(height: 16),
 
-                  const SizedBox(height: 16),
-                  DailyStatsSection(stats: provider.dailyStats),
+                      if (provider.overview != null)
+                        OverviewSection(overview: provider.overview!),
 
-                  const SizedBox(height: 16),
-                  WarningSection(warnings: provider.warnings),
-                ],
+                      const SizedBox(height: 16),
+                      ConsultantSection(consultants: provider.consultants),
+
+                      const SizedBox(height: 16),
+                      DailyStatsSection(stats: provider.dailyStats),
+
+                      const SizedBox(height: 16),
+                      WarningSection(warnings: provider.warnings),
+                    ],
+                  );
+                },
               ),
             ),
     );
