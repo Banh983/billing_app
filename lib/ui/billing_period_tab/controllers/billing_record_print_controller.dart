@@ -8,7 +8,6 @@ import 'package:billing_app/services/record_print_service.dart';
 import 'package:billing_app/services/store_config_service.dart';
 import 'package:billing_app/ui/billing_period_tab/components/printer_settings_card.dart';
 import 'package:billing_app/ui/billing_period_tab/print_preview_page.dart';
-import 'package:billing_app/ui/dialog/bluetooth_enable_dialog.dart';
 import 'package:billing_app/ui/dialog/confirm_action_dialog.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/material.dart';

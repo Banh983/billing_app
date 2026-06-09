@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
-import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -36,23 +35,17 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFEBEE),
-
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-
           child: Column(
             children: [
-              // ================= IMAGE =================
               Container(
                 height: 260,
                 width: 260,
-
                 decoration: BoxDecoration(
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(25),
-
                   boxShadow: [
                     BoxShadow(
                       color: primaryRed.withOpacity(0.25),
@@ -61,10 +54,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(25),
-
                   child: Image.asset(
                     "assets/images/Viettel_login.jpg",
                     fit: BoxFit.cover,
@@ -74,18 +65,15 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 30),
 
-              // ================= TITLE =================
               ShaderMask(
                 shaderCallback: (bounds) {
                   return const LinearGradient(
                     colors: [primaryRed, accentOrange],
                   ).createShader(bounds);
                 },
-
                 child: const Text(
                   "HỆ THỐNG\nQUẢN LÝ THU CƯỚC",
                   textAlign: TextAlign.center,
-
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -104,15 +92,11 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 25),
 
-              // ================= FORM =================
               Container(
                 padding: const EdgeInsets.all(22),
-
                 decoration: BoxDecoration(
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(22),
-
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -121,10 +105,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-
                 child: Column(
                   children: [
-                    // ================= USERNAME =================
                     CustomInputField(
                       controller: usernameController,
                       label: "Username",
@@ -134,7 +116,6 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 18),
 
-                    // ================= PASSWORD =================
                     CustomInputField(
                       controller: passwordController,
                       label: "Mật khẩu",
@@ -142,28 +123,21 @@ class _LoginPageState extends State<LoginPage> {
                       isPassword: true,
                     ),
 
-                    // ================= ERROR =================
                     if (auth.generalError != null) ...[
                       const SizedBox(height: 14),
-
                       Container(
                         width: double.infinity,
-
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 12,
                         ),
-
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.08),
-
                           borderRadius: BorderRadius.circular(12),
-
                           border: Border.all(
                             color: Colors.red.withOpacity(0.25),
                           ),
                         ),
-
                         child: Row(
                           children: [
                             const Icon(
@@ -190,47 +164,29 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 28),
 
-                    // ================= BUTTON =================
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryRed,
-
                           elevation: 2,
-
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-
                         onPressed: auth.loading
                             ? null
                             : () async {
                                 FocusScope.of(context).unfocus();
 
-                                final ok = await auth.login(
+                                await auth.login(
                                   usernameController.text.trim(),
                                   passwordController.text.trim(),
                                 );
 
                                 if (!context.mounted) return;
-
-                                if (ok) {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HomePage(
-                                        user: auth.user,
-                                        token: auth.token ?? "",
-                                      ),
-                                    ),
-                                  );
-                                }
                               },
-
                         child: auth.loading
                             ? const SizedBox(
                                 width: 22,

@@ -12,9 +12,10 @@ import 'package:billing_app/services/customer_service.dart';
 import 'package:billing_app/services/dashboard_service.dart';
 import 'package:billing_app/services/employee_service.dart';
 
+import 'package:billing_app/ui/home_page.dart';
 import 'package:billing_app/ui/login_page.dart';
-import 'package:device_preview/device_preview.dart';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -36,18 +37,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        /// =========================
-        /// AUTH
-        /// =========================
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()..initAuth()),
 
-        /// =========================
-        /// EMPLOYEE PROVIDER
-        /// =========================
         ChangeNotifierProxyProvider<AuthProvider, EmployeeProvider>(
           create: (_) =>
               EmployeeProvider(EmployeeService(baseUrl: baseUrl, token: "")),
-
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
@@ -63,14 +57,10 @@ class MyApp extends StatelessWidget {
           },
         ),
 
-        /// =========================
-        /// BILLING PERIOD PROVIDER
-        /// =========================
         ChangeNotifierProxyProvider<AuthProvider, BillingPeriodProvider>(
           create: (_) => BillingPeriodProvider(
             BillingPeriodService(baseUrl: baseUrl, token: ""),
           ),
-
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
@@ -89,13 +79,9 @@ class MyApp extends StatelessWidget {
           },
         ),
 
-        /// =========================
-        /// CUSTOMER PROVIDER
-        /// =========================
         ChangeNotifierProxyProvider<AuthProvider, CustomerProvider>(
           create: (_) =>
               CustomerProvider(CustomerService(baseUrl: baseUrl, token: "")),
-
           update: (_, auth, previous) {
             final token = auth.token ?? "";
 
@@ -111,20 +97,25 @@ class MyApp extends StatelessWidget {
           },
         ),
 
-        /// =========================
-        /// BILLING RECORD PROVIDER
-        /// =========================
         ChangeNotifierProxyProvider<AuthProvider, BillingRecordProvider>(
           create: (_) => BillingRecordProvider(
             BillingRecordService(baseUrl: baseUrl, token: ""),
           ),
-
-          update: (_, auth, _) {
+          update: (_, auth, previous) {
             final token = auth.token ?? "";
 
-            return BillingRecordProvider(
-              BillingRecordService(baseUrl: baseUrl, token: token),
+            final provider =
+                previous ??
+                BillingRecordProvider(
+                  BillingRecordService(baseUrl: baseUrl, token: token),
+                );
+
+            provider.service = BillingRecordService(
+              baseUrl: baseUrl,
+              token: token,
             );
+
+            return provider;
           },
         ),
 
@@ -132,18 +123,40 @@ class MyApp extends StatelessWidget {
           create: (_) => DashboardProvider(DashboardService()),
         ),
       ],
-
       child: MaterialApp(
         useInheritedMediaQuery: true,
         locale: DevicePreview.locale(context),
         builder: (context, child) {
           child = DevicePreview.appBuilder(context, child);
 
-          return SafeArea(child: child);
+          return SafeArea(top: false, child: child);
         },
         debugShowCheckedModeBanner: false,
-        home: const LoginPage(),
+        home: const AuthGate(),
       ),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        if (auth.initializing) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (auth.isLoggedIn) {
+          return HomePage(user: auth.user, token: auth.token ?? "");
+        }
+
+        return const LoginPage();
+      },
     );
   }
 }

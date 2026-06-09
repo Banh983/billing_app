@@ -1,14 +1,26 @@
 import 'dart:convert';
+
 import 'package:billing_app/core/app_config.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/auth_model.dart';
 
 class AuthService {
   final String baseUrl = AppConfig.baseUrl;
 
-  // ======================
-  // LOGIN
-  // ======================
+  dynamic _decodeJsonOrThrow(http.Response res) {
+    print("STATUS: ${res.statusCode}");
+    print("BODY: ${res.body}");
+
+    try {
+      return jsonDecode(res.body);
+    } catch (_) {
+      throw Exception(
+        "Server không trả về JSON. Kiểm tra lại baseUrl/API endpoint.\n"
+        "Status: ${res.statusCode}",
+      );
+    }
+  }
 
   Future<AuthModel> login(String username, String password) async {
     final res = await http.post(
@@ -17,17 +29,14 @@ class AuthService {
       body: jsonEncode({"username": username, "password": password}),
     );
 
-    final data = jsonDecode(res.body);
+    print("LOGIN URL: $baseUrl/login");
 
-    print("LOGIN STATUS: ${res.statusCode}");
-    print("LOGIN BODY: ${res.body}");
+    final data = _decodeJsonOrThrow(res);
 
-    // SUCCESS
     if (res.statusCode == 200 && data["data"] != null) {
       return AuthModel.fromJson(data["data"]);
     }
 
-    // VALIDATION ERRORS
     if (data["message"] is List && data["message"].isNotEmpty) {
       final firstError = data["message"][0];
 
@@ -36,17 +45,12 @@ class AuthService {
       }
     }
 
-    // NORMAL MESSAGE
     if (data["message"] != null) {
       throw Exception(data["message"]);
     }
 
     throw Exception("Đăng nhập thất bại");
   }
-
-  // ======================
-  // GET ACCOUNT
-  // ======================
 
   Future<AuthModel> getAccount(String token) async {
     final res = await http.get(
@@ -57,10 +61,9 @@ class AuthService {
       },
     );
 
-    final data = jsonDecode(res.body);
+    print("ACCOUNT URL: $baseUrl/account");
 
-    print("ACCOUNT STATUS: ${res.statusCode}");
-    print("ACCOUNT BODY: ${res.body}");
+    final data = _decodeJsonOrThrow(res);
 
     if (res.statusCode == 200 && data["data"] != null) {
       return AuthModel.fromJson(data["data"]);
@@ -72,10 +75,6 @@ class AuthService {
 
     throw Exception("Không lấy được thông tin tài khoản");
   }
-
-  // ======================
-  // CHANGE PASSWORD
-  // ======================
 
   Future<String> changePassword(
     String oldPass,
@@ -96,12 +95,10 @@ class AuthService {
       }),
     );
 
-    final data = jsonDecode(res.body);
+    print("CHANGE PASSWORD URL: $baseUrl/users/me/password");
 
-    print("CHANGE PASSWORD STATUS: ${res.statusCode}");
-    print("CHANGE PASSWORD BODY: ${res.body}");
+    final data = _decodeJsonOrThrow(res);
 
-    // SUCCESS
     if (res.statusCode == 200) {
       if (data["data"] != null && data["data"]["message"] != null) {
         return data["data"]["message"];
@@ -115,7 +112,6 @@ class AuthService {
       return "Đổi mật khẩu thành công";
     }
 
-    // VALIDATION ERRORS
     if (data["message"] is List && data["message"].isNotEmpty) {
       final firstError = data["message"][0];
 
@@ -124,7 +120,6 @@ class AuthService {
       }
     }
 
-    // NORMAL MESSAGE
     if (data["message"] is String) {
       throw Exception(data["message"]);
     }

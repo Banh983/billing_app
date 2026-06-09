@@ -4,7 +4,7 @@ import '../models/billing_record_model.dart';
 import '../services/billing_record_service.dart';
 
 class BillingRecordProvider extends ChangeNotifier {
-  final BillingRecordService service;
+  BillingRecordService service;
 
   BillingRecordProvider(this.service);
 

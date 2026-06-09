@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/auth_model.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _service = AuthService();
+
+  static const String _tokenKey = "access_token";
 
   // ======================
   // USER
@@ -13,6 +16,14 @@ class AuthProvider extends ChangeNotifier {
   AuthModel? user;
 
   String? get token => user?.accessToken;
+
+  bool get isLoggedIn => user != null && token != null && token!.isNotEmpty;
+
+  // ======================
+  // APP INIT STATE
+  // ======================
+
+  bool initializing = true;
 
   // ======================
   // LOGIN STATE
@@ -43,6 +54,49 @@ class AuthProvider extends ChangeNotifier {
   final TextEditingController confirmPassController = TextEditingController();
 
   // ======================
+  // INIT AUTH
+  // ======================
+
+  Future<void> initAuth() async {
+    initializing = true;
+
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final savedToken = prefs.getString(_tokenKey);
+
+      if (savedToken == null || savedToken.isEmpty) {
+        user = null;
+        return;
+      }
+
+      final fullUser = await _service.getAccount(savedToken);
+
+      user = AuthModel(
+        id: fullUser.id,
+        fullName: fullUser.fullName,
+        username: fullUser.username,
+        phone: fullUser.phone,
+        role: fullUser.role,
+        status: fullUser.status,
+        createdAt: fullUser.createdAt,
+        updatedAt: fullUser.updatedAt,
+        accessToken: savedToken,
+      );
+    } catch (_) {
+      await _clearSavedToken();
+
+      user = null;
+    } finally {
+      initializing = false;
+
+      notifyListeners();
+    }
+  }
+
+  // ======================
   // LOGIN
   // ======================
 
@@ -54,24 +108,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ======================
-      // LOGIN API
-      // ======================
-
       final loginUser = await _service.login(username, password);
 
-      // lưu user tạm để lấy token
       user = loginUser;
 
-      // ======================
-      // GET FULL ACCOUNT INFO
-      // ======================
+      await _saveToken(loginUser.accessToken);
 
       if (loginUser.accessToken.isNotEmpty) {
         try {
           final fullUser = await _service.getAccount(loginUser.accessToken);
 
-          // giữ token từ login
           user = AuthModel(
             id: fullUser.id,
             fullName: fullUser.fullName,
@@ -84,7 +130,6 @@ class AuthProvider extends ChangeNotifier {
             accessToken: loginUser.accessToken,
           );
         } catch (e) {
-          // fallback nếu account lỗi
           user = loginUser;
         }
       }
@@ -105,12 +150,32 @@ class AuthProvider extends ChangeNotifier {
   // LOGOUT
   // ======================
 
-  void logout() {
+  Future<void> logout() async {
     user = null;
+
+    await _clearSavedToken();
 
     clearPasswordFields();
 
     notifyListeners();
+  }
+
+  // ======================
+  // TOKEN STORAGE
+  // ======================
+
+  Future<void> _saveToken(String token) async {
+    if (token.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(_tokenKey, token);
+  }
+
+  Future<void> _clearSavedToken() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove(_tokenKey);
   }
 
   // ======================
@@ -120,12 +185,10 @@ class AuthProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> changePassword() async {
     changePassError = null;
 
-    // token invalid
     if (token == null || token!.isEmpty) {
       return {"success": false, "message": "Phiên đăng nhập đã hết hạn"};
     }
 
-    // confirm password mismatch
     if (newPassController.text.trim() != confirmPassController.text.trim()) {
       return {"success": false, "message": "Mật khẩu xác nhận không khớp"};
     }
@@ -191,7 +254,6 @@ class AuthProvider extends ChangeNotifier {
   // ======================
 
   void _mapError(String raw) {
-    // lỗi dạng string thường
     if (!raw.contains("field")) {
       generalError = raw;
       return;
@@ -207,10 +269,6 @@ class AuthProvider extends ChangeNotifier {
       final message = m.group(2)?.trim();
 
       switch (field) {
-        // ======================
-        // LOGIN
-        // ======================
-
         case "username":
           usernameError = message;
           break;
@@ -218,10 +276,6 @@ class AuthProvider extends ChangeNotifier {
         case "password":
           passwordError = message;
           break;
-
-        // ======================
-        // CHANGE PASSWORD
-        // ======================
 
         case "oldPassword":
           generalError = message;
