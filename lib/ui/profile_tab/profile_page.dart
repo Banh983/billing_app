@@ -6,6 +6,7 @@ import 'package:billing_app/ui/helpers/toast_utils.dart';
 import 'package:billing_app/ui/profile_tab/components/action_card.dart';
 import 'package:billing_app/ui/profile_tab/components/info_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'change_password_page.dart';
@@ -101,21 +102,32 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     final String avatarLetter = fullName.trim().isNotEmpty
         ? fullName.trim()[0].toUpperCase()
         : "U";
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6FA),
+        body: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 24),
           child: Column(
             children: [
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.fromLTRB(24, 24, 24, size.height * 0.035),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  topPadding + 24,
+                  24,
+                  size.height * 0.035,
+                ),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFFE53935), Color(0xFFFF6B6B)],

@@ -1,3 +1,3 @@
 class AppConfig {
-  static const String baseUrl = 'http://thucuoc.crmkhdncto.id.vn/api';
+  static const String baseUrl = 'https://thucuoc.crmkhdncto.id.vn/api';
 }

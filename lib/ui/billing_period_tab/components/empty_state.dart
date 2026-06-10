@@ -5,6 +5,11 @@ class BillingEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text("Không có kỳ cước"));
+    return const Center(
+      child: Text(
+        "Không có kỳ cước nào",
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+      ),
+    );
   }
 }

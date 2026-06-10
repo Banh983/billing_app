@@ -62,6 +62,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xfff5f5f5),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.red,
@@ -71,7 +72,6 @@ class _HistoryPageState extends State<HistoryPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-
       body: Column(
         children: [
           HistoryFilterCard(onFilter: _applyFilter, onReset: _resetFilter),
@@ -90,12 +90,26 @@ class _HistoryPageState extends State<HistoryPage> {
                 if (provider.records.isEmpty) {
                   return RefreshIndicator(
                     onRefresh: _refresh,
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(height: 140),
-                        Center(child: Text("Chưa có lịch sử thu cước")),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: constraints.maxHeight,
+                              child: const Center(
+                                child: Text(
+                                  "Chưa có lịch sử thu cước",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   );
                 }
