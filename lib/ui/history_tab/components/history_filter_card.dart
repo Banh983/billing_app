@@ -1,5 +1,6 @@
-import 'package:billing_app/core/app_colors.dart';
-import 'package:billing_app/ui/helpers/custom_dropdown_field.dart';
+import 'package:billing_app/ui/history_tab/components/history_filter_action_buttons.dart';
+import 'package:billing_app/ui/history_tab/components/history_filter_form.dart';
+import 'package:billing_app/ui/history_tab/components/history_filter_header.dart';
 import 'package:flutter/material.dart';
 
 class HistoryFilterCard extends StatefulWidget {
@@ -27,13 +28,13 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
   bool expanded = false;
 
   String? selectedDebtStatus;
-  String? selectedBillPrintedDate;
+  DateTime? selectedBillPrintedDate;
 
   final TextEditingController searchController = TextEditingController();
 
-  final List<_FilterOption> debtStatusOptions = const [
-    _FilterOption(label: "Chưa gạch nợ", value: "CHUA_GACH_NO"),
-    _FilterOption(label: "Đã gạch nợ", value: "DA_GACH_NO"),
+  final List<HistoryFilterOption> debtStatusOptions = const [
+    HistoryFilterOption(label: "Chưa gạch nợ", value: "CHUA_GACH_NO"),
+    HistoryFilterOption(label: "Đã gạch nợ", value: "DA_GACH_NO"),
   ];
 
   @override
@@ -42,12 +43,61 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
     super.dispose();
   }
 
+  String _formatDateForView(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}/"
+        "${date.month.toString().padLeft(2, '0')}/"
+        "${date.year.toString().padLeft(4, '0')}";
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
+
+  String _getDebtStatusLabel(String? value) {
+    if (value == null) return "";
+
+    return debtStatusOptions
+        .firstWhere(
+          (e) => e.value == value,
+          orElse: () => const HistoryFilterOption(label: "", value: ""),
+        )
+        .label;
+  }
+
+  String get _filterSummary {
+    final lines = <String>[];
+
+    if (selectedBillPrintedDate != null) {
+      lines.add("Ngày thu: ${_formatDateForView(selectedBillPrintedDate!)}");
+    }
+
+    if (selectedDebtStatus != null) {
+      lines.add("Trạng thái: ${_getDebtStatusLabel(selectedDebtStatus)}");
+    }
+
+    if (searchController.text.trim().isNotEmpty) {
+      lines.add("Từ khóa: ${searchController.text.trim()}");
+    }
+
+    if (lines.isEmpty) return "Chưa áp dụng bộ lọc";
+
+    return lines.join("\n");
+  }
+
+  bool get _hasFilter {
+    return selectedBillPrintedDate != null ||
+        selectedDebtStatus != null ||
+        searchController.text.trim().isNotEmpty;
+  }
+
   Future<void> _pickBillPrintedDate() async {
     final now = DateTime.now();
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: selectedBillPrintedDate ?? now,
       firstDate: DateTime(2024),
       lastDate: DateTime(now.year + 2),
     );
@@ -55,10 +105,7 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
     if (picked == null) return;
 
     setState(() {
-      selectedBillPrintedDate =
-          "${picked.year.toString().padLeft(4, '0')}-"
-          "${picked.month.toString().padLeft(2, '0')}-"
-          "${picked.day.toString().padLeft(2, '0')}";
+      selectedBillPrintedDate = picked;
     });
   }
 
@@ -67,9 +114,15 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
       search: searchController.text.trim().isEmpty
           ? null
           : searchController.text.trim(),
-      billPrintedDate: selectedBillPrintedDate,
+      billPrintedDate: selectedBillPrintedDate == null
+          ? null
+          : _formatDateForApi(selectedBillPrintedDate!),
       debtStatus: selectedDebtStatus,
     );
+
+    setState(() {
+      expanded = false;
+    });
   }
 
   void _resetFilter() {
@@ -77,110 +130,10 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
       searchController.clear();
       selectedDebtStatus = null;
       selectedBillPrintedDate = null;
+      expanded = false;
     });
 
     widget.onReset();
-  }
-
-  Widget _responsiveTwoColumns({
-    required Widget first,
-    required Widget second,
-  }) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmall = constraints.maxWidth < 430;
-
-        final itemWidth = isSmall
-            ? constraints.maxWidth
-            : (constraints.maxWidth - 12) / 2;
-
-        return Wrap(
-          spacing: 12,
-          runSpacing: 14,
-          children: [
-            SizedBox(width: itemWidth, child: first),
-            SizedBox(width: itemWidth, child: second),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _actionButtons() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmall = constraints.maxWidth < 360;
-
-        if (isSmall) {
-          return Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: _resetFilter,
-                  child: const Text("ĐẶT LẠI"),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                  ),
-                  onPressed: _onSearch,
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  label: const Text(
-                    "TÌM KIẾM",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 54),
-                ),
-                onPressed: _resetFilter,
-                child: const Text("ĐẶT LẠI"),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: 54,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                  ),
-                  onPressed: _onSearch,
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  label: const Text(
-                    "TÌM KIẾM",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -200,46 +153,24 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
       ),
       child: Column(
         children: [
-          InkWell(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            onTap: () => setState(() => expanded = !expanded),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.history,
-                      color: AppColors.primaryRed,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      "Bộ lọc lịch sử thu cước",
-                      maxLines: 3,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 250),
-                    child: const Icon(Icons.keyboard_arrow_down),
-                  ),
-                ],
-              ),
-            ),
+          HistoryFilterHeader(
+            expanded: expanded,
+            hasFilter: _hasFilter,
+            dateText: selectedBillPrintedDate == null
+                ? null
+                : _formatDateForView(selectedBillPrintedDate!),
+            statusText: selectedDebtStatus == null
+                ? null
+                : _getDebtStatusLabel(selectedDebtStatus),
+            searchText: searchController.text.trim().isEmpty
+                ? null
+                : searchController.text.trim(),
+            onTap: () {
+              setState(() {
+                expanded = !expanded;
+              });
+            },
           ),
-
           ClipRect(
             child: AnimatedSize(
               duration: const Duration(milliseconds: 250),
@@ -249,109 +180,43 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                       child: Column(
                         children: [
-                          _responsiveTwoColumns(
-                            first: CustomDropdownField<String>(
-                              label: "Gạch nợ",
-                              icon: Icons.account_balance_wallet_outlined,
-                              value: selectedDebtStatus,
-                              items: debtStatusOptions
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e.value,
-                                      child: Text(
-                                        e.label,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (v) {
-                                setState(() => selectedDebtStatus = v);
-                              },
-                              onClear: () {
-                                setState(() => selectedDebtStatus = null);
-                              },
-                            ),
-                            second: InkWell(
-                              onTap: _pickBillPrintedDate,
-                              borderRadius: BorderRadius.circular(18),
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: "Ngày thu",
-                                  prefixIcon: const Icon(
-                                    Icons.event_available,
-                                    color: AppColors.primaryRed,
-                                  ),
-                                  suffixIcon: selectedBillPrintedDate == null
-                                      ? null
-                                      : IconButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              selectedBillPrintedDate = null;
-                                            });
-                                          },
-                                          icon: const Icon(
-                                            Icons.close,
-                                            size: 18,
-                                          ),
-                                        ),
-                                  filled: true,
-                                  fillColor: AppColors.background,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                                child: Text(
-                                  selectedBillPrintedDate ?? "Chọn ngày",
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
+                          HistoryFilterForm(
+                            searchController: searchController,
+                            selectedDebtStatus: selectedDebtStatus,
+                            selectedBillPrintedDate: selectedBillPrintedDate,
+                            debtStatusOptions: debtStatusOptions,
+                            formatDateForView: _formatDateForView,
+                            onPickDate: _pickBillPrintedDate,
+                            onSearch: _onSearch,
+                            onDebtStatusChanged: (value) {
+                              setState(() {
+                                selectedDebtStatus = value;
+                              });
+                            },
+                            onClearDebtStatus: () {
+                              setState(() {
+                                selectedDebtStatus = null;
+                              });
+                            },
+                            onClearDate: () {
+                              setState(() {
+                                selectedBillPrintedDate = null;
+                              });
+                            },
+                            onSearchTextChanged: (_) {
+                              setState(() {});
+                            },
+                            onClearSearch: () {
+                              setState(() {
+                                searchController.clear();
+                              });
+                            },
                           ),
-
-                          const SizedBox(height: 14),
-
-                          TextField(
-                            controller: searchController,
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: (_) => _onSearch(),
-                            decoration: InputDecoration(
-                              hintText: "Tên KH / SĐT/ Thuê bao/ Địa chỉ",
-                              hintStyle: const TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: AppColors.primaryRed,
-                              ),
-                              suffixIcon: searchController.text.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          searchController.clear();
-                                        });
-                                      },
-                                      icon: Icon(
-                                        Icons.close,
-                                        size: 18,
-                                        color: Colors.black.withOpacity(0.5),
-                                      ),
-                                    ),
-                              filled: true,
-                              fillColor: AppColors.background,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
-
                           const SizedBox(height: 18),
-
-                          _actionButtons(),
+                          HistoryFilterActionButtons(
+                            onReset: _resetFilter,
+                            onSearch: _onSearch,
+                          ),
                         ],
                       ),
                     )
@@ -364,9 +229,9 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
   }
 }
 
-class _FilterOption {
+class HistoryFilterOption {
   final String label;
   final String value;
 
-  const _FilterOption({required this.label, required this.value});
+  const HistoryFilterOption({required this.label, required this.value});
 }

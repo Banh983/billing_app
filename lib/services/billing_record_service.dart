@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/billing_record_model.dart';
@@ -50,6 +51,8 @@ class BillingRecordService {
     final uri = Uri.parse(
       "$baseUrl/records",
     ).replace(queryParameters: queryParams);
+
+    debugPrint("GET RECORDS: $uri");
 
     final response = await http.get(uri, headers: headers);
 

@@ -50,13 +50,16 @@ class BillingRecordProvider extends ChangeNotifier {
     String? debtStatus,
     int? assignedUserId,
     String? billPrintedDate,
+    bool useCurrentPeriod = true,
   }) async {
     try {
       isLoading = true;
       error = null;
       notifyListeners();
 
-      final targetPeriodId = periodId ?? currentPeriodId;
+      final targetPeriodId = useCurrentPeriod
+          ? (periodId ?? currentPeriodId)
+          : periodId;
 
       records = await service.getRecords(
         periodId: targetPeriodId,

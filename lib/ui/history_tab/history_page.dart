@@ -28,6 +28,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> _fetchHistory() async {
     await context.read<BillingRecordProvider>().filterRecords(
+      useCurrentPeriod: false,
       collectionStatus: "DA_THANH_TOAN",
       search: search,
       billPrintedDate: billPrintedDate,

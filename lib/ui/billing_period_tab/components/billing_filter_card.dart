@@ -83,6 +83,11 @@ class _BillingFilterCardState extends State<BillingFilterCard>
         year: selectedYear,
         status: selectedPeriodStatus,
       );
+
+      setState(() {
+        expanded = false;
+      });
+
       return;
     }
 
@@ -93,6 +98,12 @@ class _BillingFilterCardState extends State<BillingFilterCard>
       debtStatus: selectedDebtStatus,
       billPrintedDate: selectedBillPrintedDate,
     );
+
+    if (!mounted) return;
+
+    setState(() {
+      expanded = false;
+    });
   }
 
   Future<void> _pickBillPrintedDate() async {
@@ -151,7 +162,10 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                 height: 52,
                 child: OutlinedButton(
                   onPressed: resetFilter,
-                  child: const Text("ĐẶT LẠI"),
+                  child: const Text(
+                    "ĐẶT LẠI",
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -185,7 +199,10 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                   minimumSize: const Size(double.infinity, 54),
                 ),
                 onPressed: resetFilter,
-                child: const Text("ĐẶT LẠI"),
+                child: const Text(
+                  "ĐẶT LẠI",
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
             ),
             const SizedBox(width: 12),

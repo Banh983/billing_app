@@ -62,6 +62,12 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.red,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Image.asset('assets/images/logo.png', height: 20),
+          ),
+        ],
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())

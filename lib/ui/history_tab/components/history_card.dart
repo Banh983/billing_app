@@ -36,7 +36,9 @@ class HistoryCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  record.customerName,
+                  record.customerName.isNotEmpty
+                      ? record.customerName
+                      : "Không có tên khách hàng",
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -60,6 +62,21 @@ class HistoryCard extends StatelessWidget {
           _buildItem(Icons.receipt_long, "Thuê bao", record.subscriberNumber),
           _buildItem(Icons.calendar_month, "Kỳ cước", record.billingPeriodName),
 
+          _buildItem(
+            Icons.access_time_rounded,
+            "Ngày thu",
+            record.collectedAt == null
+                ? "-"
+                : FormatHelper.formatDateTime(record.collectedAt),
+          ),
+
+          if (record.collectedByName.isNotEmpty)
+            _buildItem(
+              Icons.payments_outlined,
+              "Người thu",
+              record.collectedByName,
+            ),
+
           if (record.assignedConsultantName.isNotEmpty)
             _buildItem(Icons.person, "TVV", record.assignedConsultantName),
 
@@ -73,7 +90,7 @@ class HistoryCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                FormatHelper.formatMoney(record.amountDue),
+                FormatHelper.formatMoney(record.collectedAmount),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -102,7 +119,7 @@ class HistoryCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          Expanded(child: Text(value.isNotEmpty ? value : "-")),
+          Expanded(child: Text(value.trim().isNotEmpty ? value : "-")),
         ],
       ),
     );
