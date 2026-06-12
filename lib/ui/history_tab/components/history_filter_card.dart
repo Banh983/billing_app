@@ -66,25 +66,6 @@ class _HistoryFilterCardState extends State<HistoryFilterCard>
         .label;
   }
 
-  String get _filterSummary {
-    final lines = <String>[];
-
-    if (selectedBillPrintedDate != null) {
-      lines.add("Ngày thu: ${_formatDateForView(selectedBillPrintedDate!)}");
-    }
-
-    if (selectedDebtStatus != null) {
-      lines.add("Trạng thái: ${_getDebtStatusLabel(selectedDebtStatus)}");
-    }
-
-    if (searchController.text.trim().isNotEmpty) {
-      lines.add("Từ khóa: ${searchController.text.trim()}");
-    }
-
-    if (lines.isEmpty) return "Chưa áp dụng bộ lọc";
-
-    return lines.join("\n");
-  }
 
   bool get _hasFilter {
     return selectedBillPrintedDate != null ||
