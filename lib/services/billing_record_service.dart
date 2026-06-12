@@ -15,13 +15,17 @@ class BillingRecordService {
     "Authorization": "Bearer $token",
   };
 
-  Future<List<BillingRecordModel>> getRecordsByPeriod(int periodId) async {
-    return getRecords(periodId: periodId, page: 0, size: 100);
+  Future<Map<String, dynamic>> getRecordsByPeriod(
+    int periodId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return getRecordsPage(periodId: periodId, page: page, size: size);
   }
 
-  Future<List<BillingRecordModel>> getRecords({
+  Future<Map<String, dynamic>> getRecordsPage({
     int page = 0,
-    int size = 100,
+    int size = 20,
     int? periodId,
     String? search,
     String? collectionStatus,
@@ -63,9 +67,45 @@ class BillingRecordService {
       throw Exception(body["message"] ?? "Không thể tải danh sách khách hàng");
     }
 
+    final pageBody = _extractPageBody(body);
     final List<dynamic> content = _extractList(body);
 
-    return content.map((e) => BillingRecordModel.fromJson(e)).toList();
+    final records = content.map((e) => BillingRecordModel.fromJson(e)).toList();
+
+    return {
+      "records": records,
+      "currentPage": _toInt(pageBody["number"], fallback: page),
+      "totalPages": _toInt(pageBody["totalPages"], fallback: 1),
+      "totalElements": _toInt(
+        pageBody["totalElements"],
+        fallback: records.length,
+      ),
+      "pageSize": _toInt(pageBody["size"], fallback: size),
+    };
+  }
+
+  Future<List<BillingRecordModel>> getRecords({
+    int page = 0,
+    int size = 20,
+    int? periodId,
+    String? search,
+    String? collectionStatus,
+    String? debtStatus,
+    int? assignedUserId,
+    String? billPrintedDate,
+  }) async {
+    final result = await getRecordsPage(
+      page: page,
+      size: size,
+      periodId: periodId,
+      search: search,
+      collectionStatus: collectionStatus,
+      debtStatus: debtStatus,
+      assignedUserId: assignedUserId,
+      billPrintedDate: billPrintedDate,
+    );
+
+    return List<BillingRecordModel>.from(result["records"] ?? []);
   }
 
   Future<BillingRecordModel> getRecordDetail(int id) async {
@@ -118,6 +158,22 @@ class BillingRecordService {
     return value != null && value.trim().isNotEmpty;
   }
 
+  Map<String, dynamic> _extractPageBody(dynamic body) {
+    if (body is Map<String, dynamic>) {
+      final data = body["data"];
+
+      if (data is Map<String, dynamic> && data["content"] is List) {
+        return data;
+      }
+
+      if (body["content"] is List) {
+        return body;
+      }
+    }
+
+    return {};
+  }
+
   List<dynamic> _extractList(dynamic body) {
     if (body is Map<String, dynamic>) {
       final data = body["data"];
@@ -136,5 +192,13 @@ class BillingRecordService {
     }
 
     return [];
+  }
+
+  int _toInt(dynamic value, {required int fallback}) {
+    if (value is int) return value;
+
+    if (value is num) return value.toInt();
+
+    return int.tryParse(value?.toString() ?? "") ?? fallback;
   }
 }

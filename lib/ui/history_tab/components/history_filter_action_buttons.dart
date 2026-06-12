@@ -25,7 +25,10 @@ class HistoryFilterActionButtons extends StatelessWidget {
                 height: 52,
                 child: OutlinedButton(
                   onPressed: onReset,
-                  child: const Text("ĐẶT LẠI"),
+                  child: const Text(
+                    "ĐẶT LẠI",
+                    style: TextStyle(color: Colors.black),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),

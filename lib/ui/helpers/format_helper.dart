@@ -105,7 +105,7 @@ class FormatHelper {
         return "Quản lý";
 
       case "CONSULTANT":
-        return "Nhân viên thu cước";
+        return "Tư vấn viên";
 
       case "ADMIN":
         return "Quản trị viên";

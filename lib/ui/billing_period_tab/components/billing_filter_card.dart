@@ -40,7 +40,8 @@ class _BillingFilterCardState extends State<BillingFilterCard>
 
   final TextEditingController searchController = TextEditingController();
 
-  final List<String> years = ["2023", "2024", "2025", "2026"];
+  late final List<String> years;
+
   final List<String> periodStatuses = ["OPEN", "CLOSED"];
 
   final List<_FilterOption> collectionStatusOptions = const [
@@ -52,6 +53,15 @@ class _BillingFilterCardState extends State<BillingFilterCard>
     _FilterOption(label: "Chưa gạch nợ", value: "CHUA_GACH_NO"),
     _FilterOption(label: "Đã gạch nợ", value: "DA_GACH_NO"),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    final currentYear = DateTime.now().year;
+
+    years = List.generate(5, (index) => (currentYear - 4 + index).toString());
+  }
 
   @override
   void dispose() {
@@ -243,7 +253,7 @@ class _BillingFilterCardState extends State<BillingFilterCard>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -261,7 +271,7 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withOpacity(0.1),
+                      color: AppColors.primaryRed.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
@@ -458,7 +468,9 @@ class _BillingFilterCardState extends State<BillingFilterCard>
                                         icon: Icon(
                                           Icons.close,
                                           size: 18,
-                                          color: Colors.black.withOpacity(0.5),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
                                         ),
                                       ),
                                 filled: true,

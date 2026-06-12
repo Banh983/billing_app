@@ -145,6 +145,12 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, child) {
+        debugPrint("===== AUTH GATE =====");
+        debugPrint("INITIALIZING: ${auth.initializing}");
+        debugPrint("USER NULL: ${auth.user == null}");
+        debugPrint("TOKEN LENGTH: ${auth.token?.length ?? 0}");
+        debugPrint("IS LOGGED IN: ${auth.isLoggedIn}");
+
         if (auth.initializing) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -152,7 +158,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (auth.isLoggedIn) {
-          return HomePage(user: auth.user, token: auth.token ?? "");
+          return HomePage(user: auth.user, token: auth.token!);
         }
 
         return const LoginPage();

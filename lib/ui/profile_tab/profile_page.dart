@@ -11,7 +11,6 @@ import 'package:provider/provider.dart';
 
 import 'change_password_page.dart';
 import 'edit_profile_page.dart';
-import '../login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final dynamic user;
@@ -215,7 +214,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                       InfoTile(
                         icon: Icons.account_circle_outlined,
-                        title: "Username",
+                        title: "Tên đăng nhập",
                         value: username,
                       ),
 
@@ -322,14 +321,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    onPressed: () {
-                      context.read<AuthProvider>().logout();
-
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
-                      );
+                    onPressed: () async {
+                      await context.read<AuthProvider>().logout();
                     },
                   ),
                 ),

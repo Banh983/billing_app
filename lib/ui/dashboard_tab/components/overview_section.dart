@@ -25,7 +25,7 @@ class OverviewSection extends StatelessWidget {
           children: [
             Expanded(
               child: KpiCard(
-                title: "Đã import",
+                title: "Tổng số hồ sơ",
                 value: "${overview.totalRecordsImported}",
                 icon: Icons.upload_file,
                 color: Colors.blue,

@@ -21,6 +21,8 @@ class BillingPeriodDetailPage extends StatefulWidget {
 }
 
 class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
+  static const int _pageSize = 20;
+
   @override
   void initState() {
     super.initState();
@@ -28,14 +30,14 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
     Future.microtask(() {
       context.read<BillingRecordProvider>().fetchRecordsByPeriod(
         widget.period.id,
+        page: 0,
+        size: _pageSize,
       );
     });
   }
 
   Future<void> _refreshRecords() async {
-    await context.read<BillingRecordProvider>().fetchRecordsByPeriod(
-      widget.period.id,
-    );
+    await context.read<BillingRecordProvider>().refreshCurrentList();
   }
 
   Future<void> _markDebt(int recordId, String customerName) async {
@@ -86,6 +88,106 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
     );
   }
 
+  Widget _buildPagination(BillingRecordProvider provider) {
+    if (provider.totalPages <= 1) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: provider.hasPreviousPage && !provider.isLoading
+                  ? provider.previousPage
+                  : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+
+            ..._buildPages(provider),
+
+            IconButton(
+              onPressed: provider.hasNextPage && !provider.isLoading
+                  ? provider.nextPage
+                  : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPages(BillingRecordProvider provider) {
+    final current = provider.currentPage + 1;
+    final total = provider.totalPages;
+
+    final widgets = <Widget>[];
+
+    for (int page = 1; page <= total; page++) {
+      if (page == 1 ||
+          page == total ||
+          (page >= current - 1 && page <= current + 1)) {
+        widgets.add(_pageButton(provider, page));
+      } else if (page == current - 2 || page == current + 2) {
+        widgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text("..."),
+          ),
+        );
+      }
+    }
+
+    return widgets;
+  }
+
+  Widget _pageButton(BillingRecordProvider provider, int page) {
+    final selected = page == provider.currentPage + 1;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: provider.isLoading
+            ? null
+            : () {
+                provider.goToPage(page - 1);
+              },
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFE53935) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            page.toString(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: selected ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,6 +222,14 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
                     periodId: widget.period.id,
                   ),
                 ),
+
+                if (provider.isLoading && provider.records.isNotEmpty)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
 
                 if (provider.records.isEmpty)
                   const SliverFillRemaining(
@@ -163,6 +273,8 @@ class _BillingPeriodDetailPageState extends State<BillingPeriodDetailPage> {
                       }, childCount: provider.records.length),
                     ),
                   ),
+
+                SliverToBoxAdapter(child: _buildPagination(provider)),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],

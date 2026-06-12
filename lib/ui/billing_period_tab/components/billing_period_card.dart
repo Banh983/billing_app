@@ -7,13 +7,17 @@ class BillingPeriodCard extends StatelessWidget {
   final BillingPeriodModel billingPeriod;
 
   final VoidCallback onTap;
+
   final VoidCallback onClose;
+
+  final bool canManagePeriod;
 
   const BillingPeriodCard({
     super.key,
     required this.billingPeriod,
     required this.onTap,
     required this.onClose,
+    required this.canManagePeriod,
   });
 
   @override
@@ -58,7 +62,9 @@ class BillingPeriodCard extends StatelessWidget {
                       color: isClosed ? Colors.grey : Colors.red,
                     ),
                   ),
+
                   const SizedBox(width: 16),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +76,9 @@ class BillingPeriodCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const SizedBox(height: 6),
+
                         Text(
                           isClosed
                               ? "Kỳ cước đã khóa dữ liệu"
@@ -80,6 +88,7 @@ class BillingPeriodCard extends StatelessWidget {
                       ],
                     ),
                   ),
+
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -103,80 +112,53 @@ class BillingPeriodCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
+
+              if (canManagePeriod) ...[
+                const SizedBox(height: 20),
+
+                Row(
                   children: [
-                    buildItem("Tháng", billingPeriod.month.toString()),
-                    const SizedBox(height: 12),
-                    buildItem("Năm", billingPeriod.year.toString()),
-                    const SizedBox(height: 12),
-                    buildItem(
-                      "Trạng thái",
-                      FormatHelper.formatBillingPeriodStatus(
-                        billingPeriod.status,
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onTap,
+                        icon: const Icon(Icons.receipt_long),
+                        label: const Text("Quản lý"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: BorderSide(color: Colors.red.shade200),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: isClosed ? null : onClose,
+                        icon: Icon(isClosed ? Icons.lock : Icons.lock_open),
+                        label: Text(isClosed ? "Đã đóng" : "Đóng kỳ"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onTap,
-                      icon: const Icon(Icons.receipt_long),
-                      label: const Text("Quản lý"),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: Colors.red.shade200),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: isClosed ? null : onClose,
-                      icon: Icon(isClosed ? Icons.lock : Icons.lock_open),
-                      label: Text(isClosed ? "Đã đóng" : "Đóng kỳ"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildItem(String title, String value) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(title, style: TextStyle(color: Colors.grey.shade700)),
-        ),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }

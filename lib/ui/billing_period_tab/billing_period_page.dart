@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/billing_period_model.dart';
+import '../../provider/auth_provider.dart';
 import '../../provider/billing_period_provider.dart';
 import '../dialog/confirm_action_dialog.dart';
 import 'billing_period_detail_page.dart';
@@ -19,6 +20,7 @@ class BillingPeriodPage extends StatefulWidget {
 
 class _BillingPeriodPageState extends State<BillingPeriodPage> {
   String? selectedYear;
+
   String? selectedStatus;
 
   @override
@@ -82,8 +84,18 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
     );
   }
 
+  bool _canManagePeriod(String? role) {
+    final normalizedRole = role?.trim().toUpperCase() ?? "";
+
+    return normalizedRole == "ADMIN" || normalizedRole == "MANAGER";
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    final canManagePeriod = _canManagePeriod(auth.user?.role);
+
     return Scaffold(
       backgroundColor: const Color(0xfff5f5f5),
       appBar: AppBar(
@@ -140,6 +152,7 @@ class _BillingPeriodPageState extends State<BillingPeriodPage> {
 
                       return BillingPeriodCard(
                         billingPeriod: period,
+                        canManagePeriod: canManagePeriod,
                         onTap: () {
                           Navigator.push(
                             context,

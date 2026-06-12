@@ -109,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     CustomInputField(
                       controller: usernameController,
-                      label: "Username",
+                      label: "Tên đăng nhập",
                       icon: Icons.account_circle,
                       isPassword: false,
                     ),
